@@ -13,8 +13,9 @@
  */
 
 typedef struct node {
-	int letter;
+	char letter;
 	int visited;
+	int visitedFrom;
 	// pointers used to create a doubly linked list
 	struct node * next;
 	struct node * prev;
@@ -30,7 +31,13 @@ typedef struct node {
 	
 } Node;
 
-Node * push(Node * head, int random) {
+typedef struct stack {
+	Node * nodePtr;
+	struct stack * next;
+} Stack;
+Stack * top;
+
+Node * add(Node * head, int random) {
 	Node * newNode = NULL;
 	newNode = (Node *)malloc(sizeof(Node));
 	if (!random) {
@@ -38,14 +45,163 @@ Node * push(Node * head, int random) {
 	} else {
 		newNode -> letter = random;
 	}
-	printf("%c\n", newNode -> letter);
 	newNode -> next = head;
 	head -> prev = newNode;
 	head = newNode;
 	return head;
 }
 
-int main (void) {
+void push(Node * word) {
+	Stack * temp = NULL;
+	temp = (Stack *)malloc(sizeof(Stack));
+	if (temp == NULL) {
+		printf("stack overflow\n");
+	}
+	temp -> nodePtr = word;
+	temp -> next = top;
+	top = temp;
+}
+
+void pop() {
+	Stack * temp;
+	if (top == NULL) {
+		printf("stack underflow\n");
+	}
+	temp = top;
+	top = top -> next;
+	temp -> next = NULL;
+	free(temp);
+}
+
+void display() {
+	Stack * temp;
+	if (top == NULL) {
+		printf("stack underflow\n");
+	}
+	temp = top;
+	while (temp != NULL) {
+		printf("%c", temp -> nodePtr -> letter);
+		temp = temp -> next;
+	}
+	printf("\n");
+}
+
+int getStr(char * stackString) {
+	int count = 0;
+	int size = 0;
+	Stack * temp;
+	if (top == NULL) printf("Stack underflow\n");
+	for (temp = top; temp != NULL; temp = temp -> next) count++;
+	size = count;
+	for (int i = 19; i >= count; i--) stackString[i] = ' ';
+	for (temp = top; temp != NULL; temp = temp -> next) stackString[--count] = temp -> nodePtr -> letter;
+	printf("PATH: %s\n", stackString);
+	return size;
+}
+
+int validPath(char letter, int depth, int f) {
+	printf("\nvalid path?\n");
+	char lineRead[1000];
+	int lineCount = 2;
+	int firstValid = 0;;
+	int lastValid = 0;
+	FILE * ptrFile = NULL;
+	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
+	if (!ptrFile) printf("error: file not found");
+	for (int i = 0; i < 2; i++) {
+		fgets(lineRead, sizeof(lineRead), ptrFile);
+		//printf("%s", lineRead);
+	} //INITIAL READING, JUST TO BE SURE TXT FILE IS USED PROPER
+	for (int i = 0; i < f; i++) fgets(lineRead, sizeof(lineRead), ptrFile); //JUMP TO FIRST LEGAL CONDITION
+	lineCount += f;
+	while(!feof(ptrFile)) {
+		fgets(lineRead, sizeof(lineRead), ptrFile);
+		if (lineRead[depth] == letter) {
+			if (firstValid == 0) firstValid = lineCount;
+			//printf("LINE %d: %s\n", lineCount, lineRead);
+		}
+		if (lineRead[depth] != letter && firstValid != 0 && lastValid == 0) lastValid = lineCount - 1;
+		lineCount++;
+	}
+	if (firstValid != 0 && lastValid == 0) lastValid = lineCount - 1;
+	fseek(ptrFile, 0, SEEK_SET);
+	// PRINT BOUNDARIES OF LEGAL VALUES
+	for (int i = 0; i <= firstValid; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
+	printf("LINE %d: %s", firstValid, lineRead);
+	for (int i = firstValid; i < lastValid; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
+	printf("LINE %d: %s", lastValid, lineRead);
+	fclose(ptrFile);
+	return firstValid;
+}
+
+void checkNodes(char * stackString, int startCheck) {
+	int stackSize = getStr(stackString);
+	int testFrom = validPath(top -> nodePtr -> letter, stackSize - 1, startCheck);
+	top -> nodePtr -> visited = 1;
+	if (top -> nodePtr -> nw != NULL && top -> nodePtr -> nw -> visited == 0) {
+	//	printf("NorthWest open\n");
+		push(top -> nodePtr -> nw);
+	//	display();
+		checkNodes(stackString, testFrom);
+	}
+	if (top -> nodePtr -> n != NULL && top -> nodePtr -> n -> visited == 0) {
+	//	printf("North open\n");
+		push(top -> nodePtr -> n);
+	//	display();
+		checkNodes(stackString, testFrom);
+	}
+	if (top -> nodePtr -> ne != NULL && top -> nodePtr -> ne -> visited == 0) {
+	//	printf("NorthEast open\n");
+		push(top -> nodePtr -> ne);
+	//	display();
+		checkNodes(stackString, testFrom);
+	}
+	if (top -> nodePtr -> w != NULL && top -> nodePtr -> w -> visited == 0) {
+	//	printf("West open\n");
+		push(top -> nodePtr -> w);
+	//	display();
+		checkNodes(stackString, testFrom);
+	}
+	if (top -> nodePtr -> e != NULL && top -> nodePtr -> e -> visited == 0) {
+	//	printf("East open\n");
+		push(top -> nodePtr -> e);
+	//	display();
+		checkNodes(stackString, testFrom);
+	}
+	if (top -> nodePtr -> sw != NULL && top -> nodePtr -> sw -> visited == 0) {
+	//	printf("SouthWest open\n");
+		push(top -> nodePtr -> sw);
+	//	display();
+		checkNodes(stackString, testFrom);
+	}
+	if (top -> nodePtr -> s != NULL && top -> nodePtr -> s -> visited == 0) {
+	//	printf("South open\n");
+		push(top -> nodePtr -> s);
+	//	display();
+		checkNodes(stackString, testFrom);
+	}
+	if (top -> nodePtr -> se != NULL && top -> nodePtr -> se -> visited == 0) {
+	//	printf("SouthEast open\n");
+		push(top -> nodePtr -> se);
+	//	display();
+		checkNodes(stackString, testFrom);
+	}
+	//printf("nowhere left to go, going back\n");
+	top -> nodePtr -> visited = 0;
+	pop();
+	//display();
+}
+
+void DFS(Node * word) {
+	char stackString[20];
+	int testFrom = 0;
+	push(word);
+	//display();
+	checkNodes(stackString, testFrom);
+}
+
+
+int main(void) {
 	srand(time(0));
 	int length = 0;
 	int depth = 0;
@@ -55,8 +211,6 @@ int main (void) {
 	printf("Enter depth of board: ");
 	scanf("%d", &depth);
 	
-	printf("first pass of declarations; creating linked list\n");
-	
 	Node * head = NULL;
 	head = (Node *)malloc(sizeof(Node));
 	if (head == NULL) {
@@ -65,10 +219,9 @@ int main (void) {
 	}
 	head -> letter = 'A' + rand() % 26;
 	head -> next = NULL;
-	printf("%c\n", head -> letter);
 	
 	for (int i = 0; i < length * depth - 1; i++) {
-		head = push(head, 0);
+		head = add(head, 0);
 		if (head == NULL) {
 			printf("Error message: allocation failure during push");
 		}
@@ -77,23 +230,9 @@ int main (void) {
 	for (Node * ptr = head; ptr != NULL; ptr = ptr -> next) {
 		printf("[ %c ] ", ptr -> letter);
 		count++;
-		if (count % length == 0) printf("\n");
+		if (count % length == 0) printf("\n\n");
 	}
-	/*
-	Node * ptr = head;
-	printf("\n");
-	do {
-		ptr = ptr -> next;
-	} while (ptr -> next != NULL);
-	count = 0;
-	while (ptr != NULL) {
-		printf("[ %c ] ", ptr -> letter);
-		count++;
-		if (count % length == 0) printf("\n");
-		ptr = ptr -> prev;
-	}
-	*/
-	printf("second pass of declarations; changing pointers for completed graph\n");
+	//printf("second pass of declarations; changing pointers for completed graph\n");
 	
 	Node * index = head;
 	for (int y = 0; y < depth; y++) {
@@ -211,55 +350,58 @@ int main (void) {
 				index -> s = ptr;
 				index -> se = ptr -> next;
 			}
+			index -> visited = 0;
+			index -> visitedFrom = 0;
 			index = index -> next;
 		}
 	}
-
+	/*
+	char lineRead[1000];
+	int lineCount = 2;
+	int firstValid = 0;
+	int lastValid = 0;
+	char example = 'Z';
 	FILE * ptrFile;
 	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
 	if (!ptrFile) {
 		printf("Error message: File could not be found or read");
 		return -3;
 	}
+	printf("\n");
+	for (int i = 0; i < 2; i++) {
+		fgets(lineRead, sizeof(lineRead), ptrFile);
+		printf("%s", lineRead);
+	}
+	while (!feof(ptrFile)) {
+		fgets(lineRead, sizeof(lineRead), ptrFile);
+		if (lineRead[0] == example) {
+			if (firstValid == 0) {
+				firstValid = lineCount;
+			}	
+			printf("Line %d: %s\n", lineCount, lineRead);
+		}
+		if (lineRead[0] != example && firstValid > 0 && lastValid == 0) lastValid = lineCount - 1;
+		lineCount++;
+	}
+	if (feof(ptrFile) && example == 'Z') lastValid = lineCount - 1;
+	fseek(ptrFile, 0, SEEK_SET);
+	fgets(lineRead, sizeof(lineRead), ptrFile);
+	printf("%s", lineRead);
+	for (int i = 0; i <= firstValid - 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
+	fgets(lineRead, sizeof(lineRead), ptrFile);
+	printf("Line %d: %s\n", firstValid, lineRead);
+	for (int i = firstValid; i <= lastValid - 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
+	fgets(lineRead, sizeof(lineRead), ptrFile);
+	printf("Line %d: %s\n", lastValid, lineRead);
+	fclose(ptrFile);
+	*/
+	Node * word = head;
+	DFS(word);
+	//int testFrom = 0;
+	//testFrom = validPath('Z', 0, 0);
+	//testFrom = validPath('Z', 1, testFrom);
+	//testFrom = validPath('A', 2, testFrom);
 
-	// fgets(stringRecieved, stringSize?, ptrFile);
-
-	/*
-	// DEBUG CODE FOR 3X3 GRAPH
-	index = head;	
-	printf("TOP LEFT CORNER: e: %c s: %c se: %c\n", 
-			index -> e -> letter, index -> s -> letter, index -> se -> letter);
-	index = index -> next;
-	printf("TOP MIDDLE: w: %c e: %c sw: %c s: %c se: %c\n",
-			index -> w -> letter, index -> e -> letter,
-			index -> sw -> letter, index -> s -> letter, index -> se -> letter);
-	index = index -> next;
-	printf("TOP RIGHT CORNER: w: %c sw: %c s: %c\n", 
-			index -> w -> letter, index -> sw -> letter, index -> s -> letter);
-	index = index -> next;
-	printf("LEFT SIDE:  n: %c ne: %c e: %c s: %c se: %c\n",
-			index -> n -> letter, index -> ne -> letter, index -> e -> letter,
-			index -> s -> letter, index -> se -> letter);
-	index = index -> next;
-	printf("MIDDLE: nw: %c n: %c ne: %c w: %c e: %c sw: %c s: %c se: %c\n",
-			index -> nw -> letter, index -> n -> letter, index -> ne -> letter,
-			index -> w -> letter, index -> e -> letter,
-			index -> sw -> letter, index -> s -> letter, index -> se -> letter);
-	index = index -> next;
-	printf("RIGHT SIDE: nw: %c n: %c w: %c sw: %c s: %c\n",
-			index -> nw -> letter, index -> n -> letter, index -> w -> letter,
-			index -> sw -> letter, index -> s -> letter);
-	index = index -> next;
-	printf("BOTTOM LEFT CORNER: n: %c ne: %c e: %c\n", 
-			index -> n -> letter, index -> ne -> letter, index -> e -> letter);
-	index = index -> next;
-	printf("BOTTOM MIDDLE: nw: %c n: %c ne: %c w: %c e: %c\n",
-			index -> nw -> letter, index -> n -> letter, index -> ne -> letter,
-			index -> w -> letter, index -> e -> letter);
-	index = index -> next;
-	printf("BOTTOM RIGHT CORNER: nw: %c n: %c w: %c\n", 
-			index -> nw -> letter, index -> n -> letter, index -> w -> letter);
-	*/	
 	return 1;
 
 }
