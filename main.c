@@ -93,29 +93,30 @@ int getStr(char * stackString) {
 	if (top == NULL) printf("Stack underflow\n");
 	for (temp = top; temp != NULL; temp = temp -> next) count++;
 	size = count;
-	for (int i = 19; i >= count; i--) stackString[i] = ' ';
+	for (int i = 19; i >= count; i--) stackString[i] = '\0';
 	for (temp = top; temp != NULL; temp = temp -> next) stackString[--count] = temp -> nodePtr -> letter;
-	printf("PATH: %s\n", stackString);
+	//printf("PATH: %s\n", stackString);
 	return size;
 }
 
 int validPath(char letter, int depth, int f) {
-	printf("\nvalid path?\n");
-	char lineRead[1000];
+	//printf("testing %c with depth %d and starting at line %d\n", letter, depth, f);
+	char lineRead[70];
 	int lineCount = 2;
 	int firstValid = 0;;
 	int lastValid = 0;
 	FILE * ptrFile = NULL;
 	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
 	if (!ptrFile) printf("error: file not found");
-	for (int i = 0; i < 2; i++) {
-		fgets(lineRead, sizeof(lineRead), ptrFile);
-		//printf("%s", lineRead);
-	} //INITIAL READING, JUST TO BE SURE TXT FILE IS USED PROPER
+	for (int i = 0; i < 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
 	for (int i = 0; i < f; i++) fgets(lineRead, sizeof(lineRead), ptrFile); //JUMP TO FIRST LEGAL CONDITION
+	char previousDepth = '.';
+       	if (depth - 1 > -1) previousDepth = lineRead[depth - 1];
+	//printf("previous depth should be %c\n", previousDepth);
 	lineCount += f;
 	while(!feof(ptrFile)) {
 		fgets(lineRead, sizeof(lineRead), ptrFile);
+		if (previousDepth != lineRead[depth - 1] && previousDepth != '.') break;
 		if (lineRead[depth] == letter) {
 			if (firstValid == 0) firstValid = lineCount;
 			//printf("LINE %d: %s\n", lineCount, lineRead);
@@ -127,64 +128,111 @@ int validPath(char letter, int depth, int f) {
 	fseek(ptrFile, 0, SEEK_SET);
 	// PRINT BOUNDARIES OF LEGAL VALUES
 	for (int i = 0; i <= firstValid; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
-	printf("LINE %d: %s", firstValid, lineRead);
+	//printf("LINE %d: %s", firstValid, lineRead);
 	for (int i = firstValid; i < lastValid; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
-	printf("LINE %d: %s", lastValid, lineRead);
+	//printf("LINE %d: %s", lastValid, lineRead);
 	fclose(ptrFile);
+	//printf("\n");
 	return firstValid;
+}
+void addAnswer(char * word) {
+	char existingWord[20];
+	int duplicate;
+	FILE * fp = NULL;
+	fp = fopen("Answer List.txt", "r+");
+	if (!fp) printf("Error: no file found");
+	while(!feof(fp)) {
+		fscanf(fp, "%s", existingWord);
+		duplicate = strcmp(word, existingWord);
+		if (duplicate) return;
+	}
+	fprintf(fp, "%s\n", word);
+	fclose(fp);
+}
+
+void validWord(char * stackString, int testFrom) {
+	char lineRead[70];
+	char wordCheck[20];
+	FILE * ptrFile = NULL;
+	int count = 0;
+	Stack * temp;
+	if (top == NULL) printf("Stack underflow\n");
+	for (temp = top; temp != NULL; temp = temp -> next) count++;
+	for (int i = 19; i >= count; i--) stackString[i] = '\0';
+	for (temp = top; temp != NULL; temp = temp -> next) stackString[--count] = temp -> nodePtr -> letter;
+	//printf("STRING TO COMPARE IS: %s\n", stackString);
+	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
+	if (!ptrFile) printf("Error: file not found");
+	for (int i = 0; i < 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
+	for (int i = 0; i <= testFrom - 2; i++) fscanf(ptrFile, "%s", wordCheck);
+	while(!feof(ptrFile)) {
+		//printf("%s\n", wordCheck);
+		int valid = 1;
+		valid = strcmp(stackString, wordCheck);
+		if (valid == 0) addAnswer(wordCheck);
+		//if (valid == 0) printf("VALID: %s == %s\n", stackString, wordCheck);
+		if (valid < 0) break;
+		//printf("comparing %s against %s, got value %d\n", stackString, wordCheck, valid);
+		fgets(lineRead, sizeof(lineRead), ptrFile);
+		fscanf(ptrFile, "%s", wordCheck);	
+	}
+	fclose(ptrFile);
 }
 
 void checkNodes(char * stackString, int startCheck) {
 	int stackSize = getStr(stackString);
 	int testFrom = validPath(top -> nodePtr -> letter, stackSize - 1, startCheck);
+	validWord(stackString, testFrom);
 	top -> nodePtr -> visited = 1;
-	if (top -> nodePtr -> nw != NULL && top -> nodePtr -> nw -> visited == 0) {
-	//	printf("NorthWest open\n");
-		push(top -> nodePtr -> nw);
-	//	display();
-		checkNodes(stackString, testFrom);
-	}
-	if (top -> nodePtr -> n != NULL && top -> nodePtr -> n -> visited == 0) {
-	//	printf("North open\n");
-		push(top -> nodePtr -> n);
-	//	display();
-		checkNodes(stackString, testFrom);
-	}
-	if (top -> nodePtr -> ne != NULL && top -> nodePtr -> ne -> visited == 0) {
-	//	printf("NorthEast open\n");
-		push(top -> nodePtr -> ne);
-	//	display();
-		checkNodes(stackString, testFrom);
-	}
-	if (top -> nodePtr -> w != NULL && top -> nodePtr -> w -> visited == 0) {
-	//	printf("West open\n");
-		push(top -> nodePtr -> w);
-	//	display();
-		checkNodes(stackString, testFrom);
-	}
-	if (top -> nodePtr -> e != NULL && top -> nodePtr -> e -> visited == 0) {
-	//	printf("East open\n");
-		push(top -> nodePtr -> e);
-	//	display();
-		checkNodes(stackString, testFrom);
-	}
-	if (top -> nodePtr -> sw != NULL && top -> nodePtr -> sw -> visited == 0) {
-	//	printf("SouthWest open\n");
-		push(top -> nodePtr -> sw);
-	//	display();
-		checkNodes(stackString, testFrom);
-	}
-	if (top -> nodePtr -> s != NULL && top -> nodePtr -> s -> visited == 0) {
-	//	printf("South open\n");
-		push(top -> nodePtr -> s);
-	//	display();
-		checkNodes(stackString, testFrom);
-	}
-	if (top -> nodePtr -> se != NULL && top -> nodePtr -> se -> visited == 0) {
-	//	printf("SouthEast open\n");
-		push(top -> nodePtr -> se);
-	//	display();
-		checkNodes(stackString, testFrom);
+	if (testFrom != 0) {
+		if (top -> nodePtr -> nw != NULL && top -> nodePtr -> nw -> visited == 0) {
+		//	printf("NorthWest open\n");
+			push(top -> nodePtr -> nw);
+		//	display();
+			checkNodes(stackString, testFrom);
+		}
+		if (top -> nodePtr -> n != NULL && top -> nodePtr -> n -> visited == 0) {
+		//	printf("North open\n");
+			push(top -> nodePtr -> n);
+		//	display();
+			checkNodes(stackString, testFrom);
+		}
+		if (top -> nodePtr -> ne != NULL && top -> nodePtr -> ne -> visited == 0) {
+		//	printf("NorthEast open\n");
+			push(top -> nodePtr -> ne);
+		//	display();
+			checkNodes(stackString, testFrom);
+		}
+		if (top -> nodePtr -> w != NULL && top -> nodePtr -> w -> visited == 0) {
+		//	printf("West open\n");
+			push(top -> nodePtr -> w);
+		//	display();
+			checkNodes(stackString, testFrom);
+		}
+		if (top -> nodePtr -> e != NULL && top -> nodePtr -> e -> visited == 0) {
+		//	printf("East open\n");
+			push(top -> nodePtr -> e);
+		//	display();
+			checkNodes(stackString, testFrom);
+		}
+		if (top -> nodePtr -> sw != NULL && top -> nodePtr -> sw -> visited == 0) {
+		//	printf("SouthWest open\n");
+			push(top -> nodePtr -> sw);
+		//	display();
+			checkNodes(stackString, testFrom);
+		}
+		if (top -> nodePtr -> s != NULL && top -> nodePtr -> s -> visited == 0) {
+		//	printf("South open\n");
+			push(top -> nodePtr -> s);
+		//	display();
+			checkNodes(stackString, testFrom);
+		}
+		if (top -> nodePtr -> se != NULL && top -> nodePtr -> se -> visited == 0) {
+		//	printf("SouthEast open\n");
+			push(top -> nodePtr -> se);
+		//	display();
+			checkNodes(stackString, testFrom);
+		}
 	}
 	//printf("nowhere left to go, going back\n");
 	top -> nodePtr -> visited = 0;
@@ -355,48 +403,7 @@ int main(void) {
 			index = index -> next;
 		}
 	}
-	/*
-	char lineRead[1000];
-	int lineCount = 2;
-	int firstValid = 0;
-	int lastValid = 0;
-	char example = 'Z';
-	FILE * ptrFile;
-	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
-	if (!ptrFile) {
-		printf("Error message: File could not be found or read");
-		return -3;
-	}
-	printf("\n");
-	for (int i = 0; i < 2; i++) {
-		fgets(lineRead, sizeof(lineRead), ptrFile);
-		printf("%s", lineRead);
-	}
-	while (!feof(ptrFile)) {
-		fgets(lineRead, sizeof(lineRead), ptrFile);
-		if (lineRead[0] == example) {
-			if (firstValid == 0) {
-				firstValid = lineCount;
-			}	
-			printf("Line %d: %s\n", lineCount, lineRead);
-		}
-		if (lineRead[0] != example && firstValid > 0 && lastValid == 0) lastValid = lineCount - 1;
-		lineCount++;
-	}
-	if (feof(ptrFile) && example == 'Z') lastValid = lineCount - 1;
-	fseek(ptrFile, 0, SEEK_SET);
-	fgets(lineRead, sizeof(lineRead), ptrFile);
-	printf("%s", lineRead);
-	for (int i = 0; i <= firstValid - 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
-	fgets(lineRead, sizeof(lineRead), ptrFile);
-	printf("Line %d: %s\n", firstValid, lineRead);
-	for (int i = firstValid; i <= lastValid - 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
-	fgets(lineRead, sizeof(lineRead), ptrFile);
-	printf("Line %d: %s\n", lastValid, lineRead);
-	fclose(ptrFile);
-	*/
-	Node * word = head;
-	DFS(word);
+	for (Node * word = head; word != NULL; word = word -> next) DFS(word);
 	//int testFrom = 0;
 	//testFrom = validPath('Z', 0, 0);
 	//testFrom = validPath('Z', 1, testFrom);
