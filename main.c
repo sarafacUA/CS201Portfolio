@@ -3,6 +3,14 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
+
+
 /* CS201 Portfolio Initial description and notes
  * Alex Rafac
  * 11740097
@@ -135,18 +143,24 @@ int validPath(char letter, int depth, int f) {
 	//printf("\n");
 	return firstValid;
 }
+
 void addAnswer(char * word) {
 	char existingWord[20];
-	int duplicate;
+	int duplicate = 1;
 	FILE * fp = NULL;
-	fp = fopen("Answer List.txt", "r+");
+	//printf("valid word found, adding %s\n", word);
+	fp = fopen("Answer List.txt", "a+");
 	if (!fp) printf("Error: no file found");
+	fseek(fp, 0, SEEK_SET);
+	fscanf(fp, "%s", existingWord);
 	while(!feof(fp)) {
-		fscanf(fp, "%s", existingWord);
+		//printf("%s\n", existingWord);
+		//printf("comparing %s against %s\n", word, existingWord);
 		duplicate = strcmp(word, existingWord);
-		if (duplicate) return;
+		if (duplicate == 0) break;
+		fscanf(fp, "%s", existingWord);
 	}
-	fprintf(fp, "%s\n", word);
+	if (duplicate != 0) fprintf(fp, "%s\r\n", word);
 	fclose(fp);
 }
 
@@ -253,12 +267,18 @@ int main(void) {
 	srand(time(0));
 	int length = 0;
 	int depth = 0;
+	float timeDuration;
+	FILE * fp = NULL;
+	fp = fopen( "Answer List.txt", "w");
+	fclose(fp);
 	printf("Test to determine size of boggle board user wants\n");
 	printf("Enter length of board: ");
 	scanf("%d", &length);
 	printf("Enter depth of board: ");
 	scanf("%d", &depth);
-	
+	printf("Enter timer duration for guessing: ");
+	scanf("%f", &timeDuration);
+	printf("\n");	
 	Node * head = NULL;
 	head = (Node *)malloc(sizeof(Node));
 	if (head == NULL) {
@@ -404,11 +424,56 @@ int main(void) {
 		}
 	}
 	for (Node * word = head; word != NULL; word = word -> next) DFS(word);
-	//int testFrom = 0;
-	//testFrom = validPath('Z', 0, 0);
-	//testFrom = validPath('Z', 1, testFrom);
-	//testFrom = validPath('A', 2, testFrom);
+	
+	char answer[20];
+	int exists = 0;
+	fp = fopen("Answer List.txt", "r");
+	fscanf(fp, "%s", answer);
+	while (!feof(fp)) {
+		printf("%s\n", answer);
+		fscanf(fp, "%s", answer);
+		exists++;
+	}
+	if (exists == 0) printf("no valid words found\n");
+	fclose(fp);
+	
+	time_t start_t;
+	time_t end_t;
+	printf("\nstarting timer to solve boggle board\n");
+	time(&start_t);
+	time(&end_t);
+	while (difftime(end_t, start_t) < timeDuration) time(&end_t);
+	double diff_t = difftime(end_t, start_t);
+	printf("clock took %f seconds\n", diff_t);
+	
+	printf("\nEnter words found now. type '.' once done\n");
+	char guess[30];
+	int scoring = 1;
+	exists = 0;
+	int points = 0;
+	while (scoring) {
+		scanf("%s", guess);
+		fp = fopen("Answer List.txt", "r");
+		fscanf(fp, "%s", answer);
+		while (!feof(fp)) {
+			if (strcmp(guess, answer) == 0) {
+				exists++;
+				printf("answer found\n");
+			}
+			fscanf(fp, "%s", answer);
+		}
+		fclose(fp);
+		if (exists > 0) {
+			if (strlen(guess) < 2) points = points;
+			if (strlen(guess) > 2) ++points;
+			if (strlen(guess) > 4) ++points;
+			if (strlen(guess) > 5) ++points;
+			if (strlen(guess) > 6) points += 2;
+			if (strlen(guess) > 7) points += 6;
+		}
+		if (strcmp(guess, ".") == 0) --scoring;
+	}
+	printf("\nscore is: %d\n", points);
 
 	return 1;
-
 }
