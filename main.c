@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 #include <time.h>
 
@@ -41,6 +42,7 @@ typedef struct node {
 
 typedef struct stack {
 	Node * nodePtr;
+	int visited;
 	struct stack * next;
 } Stack;
 Stack * top;
@@ -48,6 +50,7 @@ Stack * top;
 Node * add(Node * head, int random) {
 	Node * newNode = NULL;
 	newNode = (Node *)malloc(sizeof(Node));
+	if (newNode == NULL) printf("Error message: allocation error during add");
 	if (!random) {
 		newNode -> letter = 'A' + rand() % 26;
 	} else {
@@ -133,12 +136,14 @@ int validPath(char letter, int depth, int f) {
 		lineCount++;
 	}
 	if (firstValid != 0 && lastValid == 0) lastValid = lineCount - 1;
+	/*
 	fseek(ptrFile, 0, SEEK_SET);
 	// PRINT BOUNDARIES OF LEGAL VALUES
 	for (int i = 0; i <= firstValid; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
 	//printf("LINE %d: %s", firstValid, lineRead);
 	for (int i = firstValid; i < lastValid; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
 	//printf("LINE %d: %s", lastValid, lineRead);
+	*/
 	fclose(ptrFile);
 	//printf("\n");
 	return firstValid;
@@ -174,7 +179,7 @@ void validWord(char * stackString, int testFrom) {
 	for (temp = top; temp != NULL; temp = temp -> next) count++;
 	for (int i = 19; i >= count; i--) stackString[i] = '\0';
 	for (temp = top; temp != NULL; temp = temp -> next) stackString[--count] = temp -> nodePtr -> letter;
-	//printf("STRING TO COMPARE IS: %s\n", stackString);
+	printf("%s\n", stackString);
 	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
 	if (!ptrFile) printf("Error: file not found");
 	for (int i = 0; i < 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
@@ -184,7 +189,7 @@ void validWord(char * stackString, int testFrom) {
 		int valid = 1;
 		valid = strcmp(stackString, wordCheck);
 		if (valid == 0) addAnswer(wordCheck);
-		//if (valid == 0) printf("VALID: %s == %s\n", stackString, wordCheck);
+		if (valid == 0) printf("VALID: %s == %s\n", stackString, wordCheck);
 		if (valid < 0) break;
 		//printf("comparing %s against %s, got value %d\n", stackString, wordCheck, valid);
 		fgets(lineRead, sizeof(lineRead), ptrFile);
@@ -196,7 +201,7 @@ void validWord(char * stackString, int testFrom) {
 void checkNodes(char * stackString, int startCheck) {
 	int stackSize = getStr(stackString);
 	int testFrom = validPath(top -> nodePtr -> letter, stackSize - 1, startCheck);
-	validWord(stackString, testFrom);
+	if (stackSize > 2) validWord(stackString, testFrom);
 	top -> nodePtr -> visited = 1;
 	if (testFrom != 0) {
 		if (top -> nodePtr -> nw != NULL && top -> nodePtr -> nw -> visited == 0) {
@@ -262,52 +267,21 @@ void DFS(Node * word) {
 	checkNodes(stackString, testFrom);
 }
 
-
-int main(void) {
-	srand(time(0));
-	int length = 0;
-	int depth = 0;
-	float timeDuration;
-	FILE * fp = NULL;
-	fp = fopen( "Answer List.txt", "w");
-	fclose(fp);
-	printf("Test to determine size of boggle board user wants\n");
-	printf("Enter length of board: ");
-	scanf("%d", &length);
-	printf("Enter depth of board: ");
-	scanf("%d", &depth);
-	printf("Enter timer duration for guessing: ");
-	scanf("%f", &timeDuration);
-	printf("\n");	
+Node * boggleGraph(int length, int depth) {
 	Node * head = NULL;
 	head = (Node *)malloc(sizeof(Node));
-	if (head == NULL) {
-		printf("Error message: allocation failure of head");
-		return -1;
-	}
+	if (head == NULL) printf("Error message: allocation failure of head\n");
 	head -> letter = 'A' + rand() % 26;
 	head -> next = NULL;
-	
 	for (int i = 0; i < length * depth - 1; i++) {
 		head = add(head, 0);
-		if (head == NULL) {
-			printf("Error message: allocation failure during push");
-		}
+		if (head == NULL) printf("Error message: allocation failure during push\n");
 	}
-	int count = 0;
-	for (Node * ptr = head; ptr != NULL; ptr = ptr -> next) {
-		printf("[ %c ] ", ptr -> letter);
-		count++;
-		if (count % length == 0) printf("\n\n");
-	}
-	//printf("second pass of declarations; changing pointers for completed graph\n");
-	
 	Node * index = head;
 	for (int y = 0; y < depth; y++) {
 		for (int x = 0; x < length; x++) {
 			Node * ptr = index;
-			if (x == 0 && y == 0) {
-				// top left corner
+			if (x == 0 && y == 0) { // top left corner
 				index -> w = NULL;
 				index -> e = ptr -> next;
 				index -> nw = NULL;
@@ -317,9 +291,7 @@ int main(void) {
 				index -> sw = NULL;
 				index -> s = ptr;
 				index -> se = ptr -> next;
-			}
-			else if (x == length - 1 && y == 0) {
-				// top right corner
+			} else if (x == length - 1 && y == 0) { // top right corner
 				index -> w = ptr -> prev;
 				index -> e = NULL;
 				index -> nw = NULL;
@@ -330,9 +302,7 @@ int main(void) {
 				index -> s = ptr;
 				index -> se = NULL;
 				
-			}
-			else if (x == 0 && y == depth - 1) {
-				// bottom left corner
+			} else if (x == 0 && y == depth - 1) { // bottom left corner
 				index -> w = NULL;
 				index -> e = ptr -> next;
 				for (int i = 0; i < length; i++) ptr = ptr -> prev;
@@ -342,9 +312,7 @@ int main(void) {
 				index -> sw = NULL;
 				index -> s = NULL;
 				index -> se = NULL;	
-			}
-			else if (x == length - 1 && y == depth - 1) {
-				// bottom right corner
+			} else if (x == length - 1 && y == depth - 1) { // bottom right corner
 				index -> w = ptr -> prev;
 				index -> e = NULL;
 				for (int i = 0; i < length; i++) ptr = ptr -> prev;
@@ -354,9 +322,7 @@ int main(void) {
 				index -> sw = NULL;
 				index -> s = NULL;
 				index -> se = NULL;
-			}
-			else if (y == 0) {
-				// first row
+			} else if (y == 0) { // first row
 				index -> w = ptr -> prev;
 				index -> e = ptr -> next;
 				index -> nw = NULL;
@@ -366,9 +332,7 @@ int main(void) {
 				index -> sw = ptr -> prev;
 				index -> s = ptr;
 				index -> se = ptr -> next;
-			}
-			else if (x == 0) {
-				// first column
+			} else if (x == 0) { // first column
 				index -> w = NULL;
 				index -> e = ptr -> next;
 				for (int i = 0; i < length; i++) ptr = ptr -> prev;
@@ -379,9 +343,7 @@ int main(void) {
 				index -> sw = NULL;
 				index -> s = ptr;
 				index -> se = ptr -> next;
-			}
-			else if (x == length - 1) {
-				// last column
+			} else if (x == length - 1) { // last column
 			       	index -> w = ptr -> prev;
 			       	index -> e = NULL;
 			       	for (int i = 0; i < length; i++) ptr = ptr -> prev;
@@ -392,9 +354,7 @@ int main(void) {
 			       	index -> sw = ptr -> prev;
 			       	index -> s = ptr;
 			       	index -> se = NULL;
-			}
-			else if (y == depth - 1) {
-				// last row
+			} else if (y == depth - 1) { // last row
 				index -> w = ptr -> prev;
 				index -> e = ptr -> next;
 				for (int i = 0; i < length; i++) ptr = ptr -> prev;
@@ -404,9 +364,7 @@ int main(void) {
 				index -> sw = NULL;
 				index -> s = NULL;
 				index -> se = NULL;
-			}
-			else {
-				// general case
+			} else { // general case
 				index -> w = ptr -> prev;
 				index -> e = ptr -> next;
 				for (int i = 0; i < length; i++) ptr = ptr -> prev;
@@ -423,26 +381,133 @@ int main(void) {
 			index = index -> next;
 		}
 	}
+	return head;
+}
+
+int score(char * guess) {
+	FILE * fp;
+	char answer[20];
+	int i = 0;
+	int points = 0;
+	while (guess[i]) {
+		guess[i] = toupper(guess[i]);
+		i++;
+	}
+	i = 0;
+	fp = fopen("Answer List.txt", "r");
+	fscanf(fp, "%s", answer);
+	while (!feof(fp)) {
+		if (strcmp(guess, answer) == 0) i++;
+		fscanf(fp, "%s", answer);
+	}
+	fclose(fp);
+
+	if (i) {
+		switch(strlen(guess)) {
+			case 3:
+			case 4:
+				points = 1;
+				break;
+			case 5:
+				points = 2;
+				break;
+			case 6:
+				points = 3;
+				break;
+			case 7:
+				points = 5;
+				break;
+			default:
+				points = 11;
+		}
+	}
+	return points;
+}
+
+void title(void) {
+	printf("\n");
+	printf(" /$$$$$$$   /$$$$$$   /$$$$$$   /$$$$$$  /$$       /$$$$$$$$\n");
+	printf("| $$__  $$ /$$__  $$ /$$__  $$ /$$__  $$| $$      | $$_____/\n");
+	printf("| $$  \\ $$| $$  \\ $$| $$  \\__/| $$  \\__/| $$      | $$\n");
+	printf("| $$$$$$$ | $$  | $$| $$ /$$$$| $$ /$$$$| $$      | $$$$$\n");
+	printf("| $$__  $$| $$  | $$| $$|_  $$| $$|_  $$| $$      | $$__/\n");
+	printf("| $$  \\ $$| $$  | $$| $$  \\ $$| $$  \\ $$| $$      | $$\n");
+	printf("| $$$$$$$/|  $$$$$$/|  $$$$$$/|  $$$$$$/| $$$$$$$$| $$$$$$$$\n");
+	printf("|_______/  \\______/\\ \\______/  \\______/ |________/|________/\n");
+	printf("\n");
+}
+
+void displayBoard(Node * head, int length, int depth) {
+	printf("\n");
+	for (int x = 0; x < length; x++) printf("****");
+	printf("*\n");
+	for (int y = 0; y < depth; y++) {
+		for (int x = 0; x < length; x++) { 
+			printf("* %c ", head -> letter);
+			head = head -> next;
+		}
+		printf("*\n");
+		for (int x = 0; x < length; x++) printf("****");
+		printf("*\n");
+	}
+	printf("\n");
+}
+
+
+
+int main (void) {
+	srand(0);
+	int length = 0;
+	int depth = 0;
+	char manual[10];
+	char letter;
+	float timer = 0;
+	time_t start_t, end_t;
+	FILE * fp = NULL;
+	fp = fopen("Answer List.txt", "w");
+	fclose(fp);
+	title();
+	printf("Enter length (length > 1): ");
+	scanf("%d", &length);
+	printf("Enter depth (depth > 1): ");
+	scanf("%d", &depth);
+	printf("Enter timer duration (timer > 0): ");
+	scanf("%f", &timer);
+	printf("\n");
+	Node * head = boggleGraph(length, depth);
+	printf("Do you want to enter inputs manually? ");
+	scanf("%s", manual);
+	Node * userInput = head;
+	if (strcmp(manual, "yes") == 0) {
+		for (int y = 0; y < depth; y++) {
+			for (int x = 0; x < length; x++) {
+				printf("Enter letter here: (%d, %d) ", x, y);
+				for (int x = 0; x < length; x++) scanf("%c", &letter);
+				userInput -> letter = letter;
+				userInput = userInput -> next;
+
+			}
+		}
+	}
 	for (Node * word = head; word != NULL; word = word -> next) DFS(word);
-	
 	char answer[20];
 	int exists = 0;
 	fp = fopen("Answer List.txt", "r");
 	fscanf(fp, "%s", answer);
 	while (!feof(fp)) {
-		printf("%s\n", answer);
+		//printf("%s\n", answer);
 		fscanf(fp, "%s", answer);
 		exists++;
 	}
 	if (exists == 0) printf("no valid words found\n");
 	fclose(fp);
 	
-	time_t start_t;
-	time_t end_t;
+	displayBoard(head, length, depth);
+	
 	printf("\nstarting timer to solve boggle board\n");
 	time(&start_t);
 	time(&end_t);
-	while (difftime(end_t, start_t) < timeDuration) time(&end_t);
+	while (difftime(end_t, start_t) < timer) time(&end_t);
 	double diff_t = difftime(end_t, start_t);
 	printf("clock took %f seconds\n", diff_t);
 	
@@ -453,24 +518,7 @@ int main(void) {
 	int points = 0;
 	while (scoring) {
 		scanf("%s", guess);
-		fp = fopen("Answer List.txt", "r");
-		fscanf(fp, "%s", answer);
-		while (!feof(fp)) {
-			if (strcmp(guess, answer) == 0) {
-				exists++;
-				printf("answer found\n");
-			}
-			fscanf(fp, "%s", answer);
-		}
-		fclose(fp);
-		if (exists > 0) {
-			if (strlen(guess) < 2) points = points;
-			if (strlen(guess) > 2) ++points;
-			if (strlen(guess) > 4) ++points;
-			if (strlen(guess) > 5) ++points;
-			if (strlen(guess) > 6) points += 2;
-			if (strlen(guess) > 7) points += 6;
-		}
+		points += score(guess);
 		if (strcmp(guess, ".") == 0) --scoring;
 	}
 	printf("\nscore is: %d\n", points);
