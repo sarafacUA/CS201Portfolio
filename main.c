@@ -47,15 +47,11 @@ typedef struct stack {
 } Stack;
 Stack * top;
 
-Node * add(Node * head, int random) {
+Node * add(Node * head) {
 	Node * newNode = NULL;
 	newNode = (Node *)malloc(sizeof(Node));
 	if (newNode == NULL) printf("Error message: allocation error during add");
-	if (!random) {
-		newNode -> letter = 'A' + rand() % 26;
-	} else {
-		newNode -> letter = random;
-	}
+	newNode -> letter = 'A' + rand() % 26;
 	newNode -> next = head;
 	head -> prev = newNode;
 	head = newNode;
@@ -179,7 +175,9 @@ void validWord(char * stackString, int testFrom) {
 	for (temp = top; temp != NULL; temp = temp -> next) count++;
 	for (int i = 19; i >= count; i--) stackString[i] = '\0';
 	for (temp = top; temp != NULL; temp = temp -> next) stackString[--count] = temp -> nodePtr -> letter;
-	printf("%s\n", stackString);
+	//
+	//printf("%s\n", stackString);
+	//
 	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
 	if (!ptrFile) printf("Error: file not found");
 	for (int i = 0; i < 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
@@ -259,12 +257,16 @@ void checkNodes(char * stackString, int startCheck) {
 	//display();
 }
 
-void DFS(Node * word) {
-	char stackString[20];
-	int testFrom = 0;
-	push(word);
-	//display();
-	checkNodes(stackString, testFrom);
+void DFS(Node * head) {
+	//char stackString[20];
+	//int testFrom = 0;
+	for (Node * word = head; word != NULL; word = word -> next) {
+		char stackString[20];
+		int testFrom = 0;
+		push(word);
+		//display();
+		checkNodes(stackString, testFrom);
+	}
 }
 
 Node * boggleGraph(int length, int depth) {
@@ -274,7 +276,7 @@ Node * boggleGraph(int length, int depth) {
 	head -> letter = 'A' + rand() % 26;
 	head -> next = NULL;
 	for (int i = 0; i < length * depth - 1; i++) {
-		head = add(head, 0);
+		head = add(head);
 		if (head == NULL) printf("Error message: allocation failure during push\n");
 	}
 	Node * index = head;
@@ -439,57 +441,223 @@ void title(void) {
 
 void displayBoard(Node * head, int length, int depth) {
 	printf("\n");
-	for (int x = 0; x < length; x++) printf("****");
-	printf("*\n");
+	for (int x = 0; x < length; x++) printf("+---");
+	printf("+\n");
 	for (int y = 0; y < depth; y++) {
 		for (int x = 0; x < length; x++) { 
-			printf("* %c ", head -> letter);
+			printf("| %c ", head -> letter);
 			head = head -> next;
 		}
-		printf("*\n");
-		for (int x = 0; x < length; x++) printf("****");
-		printf("*\n");
+		printf("|\n");
+		for (int x = 0; x < length; x++) printf("+---");
+		printf("+\n");
 	}
 	printf("\n");
 }
 
+int sanitizedInt(int validRange, int validLimit, char * buffer, char * message) {
+	printf("%s", message);
+	scanf("%s", buffer);
+	int validInt = 1;
+	while (validInt) {
+		for (int i = 0; i < strlen(buffer); i++) if (isdigit(buffer[i]) == 0) validInt = 0;
+		if (!validInt) {
+			printf("Invalid Input\n%s", message);
+			scanf("%s", buffer);
+			validInt = 1;
+		} else if (validRange > atoi(buffer)) {
+			printf("Invalid Input\n%s", message);
+			scanf("%s", buffer);
+			validInt = 1;
+		} else if (validLimit > 0 && validLimit < atoi(buffer)) {
+			printf("Invalid Input\n%s", message);
+			scanf("%s", buffer);
+			validInt = 1;
+		} else validInt = 0;
+	}
+	return atoi(buffer);
+}
 
+void countDown(int timer, char * message) {
+	time_t start_t, end_t;
+	time(&start_t);
+	time(&end_t);
+	while(difftime(end_t, start_t) < timer) time(&end_t);
+	printf("%s\n", message);
+
+}
+
+int guessValid(char * buffer) {
+	printf("Please input '.' once done entering words\n");
+	int scoring = 1;
+	int points = 0;
+	while (scoring) {
+		scanf("%s", buffer);
+		points += score(buffer);
+		if (strcmp(buffer, ".") == 0) --scoring;
+	}
+	return points;
+}
+
+void freeGraph(Node * head) {
+	Node * temp;
+	while(head != NULL) {
+		temp = head;
+		head = head -> next;
+		free(temp);
+	}
+}
 
 int main (void) {
-	srand(0);
-	int length = 0;
-	int depth = 0;
-	char manual[10];
-	char letter;
-	float timer = 0;
-	time_t start_t, end_t;
+	srand(time(0));
+	Node * head = NULL;
+	int length = 2;
+	int height = 2;
+	int playerCount = 2;
+	int playerScore[12];
+	float timer = 1;
+	//time_t start_t, end_t;
 	FILE * fp = NULL;
 	fp = fopen("Answer List.txt", "w");
 	fclose(fp);
 	title();
-	printf("Enter length (length > 1): ");
-	scanf("%d", &length);
-	printf("Enter depth (depth > 1): ");
-	scanf("%d", &depth);
-	printf("Enter timer duration (timer > 0): ");
-	scanf("%f", &timer);
-	printf("\n");
-	Node * head = boggleGraph(length, depth);
-	printf("Do you want to enter inputs manually? ");
-	scanf("%s", manual);
-	Node * userInput = head;
-	if (strcmp(manual, "yes") == 0) {
-		for (int y = 0; y < depth; y++) {
-			for (int x = 0; x < length; x++) {
-				printf("Enter letter here: (%d, %d) ", x, y);
-				for (int x = 0; x < length; x++) scanf("%c", &letter);
-				userInput -> letter = letter;
-				userInput = userInput -> next;
-
-			}
+	int playing = 1;
+	char multiplayerChoice;
+	int multiplayerMenu = 1;
+	int multiplayer = 1;
+	int multiplayerSetup = 1;
+	char buffer[1000];
+	while (playing) {
+		int menuInput = 0;
+		printf("MAIN MENU\n\n");
+		printf("1: SINGLEPLAYER MODE (1)\n");
+		printf("2: MULTIPLAYER MODE (2-6)\n");
+		printf("3: BOGGLE SOLVER\n");
+		printf("4: Quit\n\n");
+		scanf("%s", buffer);
+		printf("\n");
+		if (strlen(buffer) == 1) menuInput = buffer[0];
+		switch (menuInput) {
+			case '1':
+				length = sanitizedInt(2, 0, buffer, "Please Enter Length of Boggle Board (length > 1): ");
+				height = sanitizedInt(2, 0, buffer, "Please Enter Leight of Boggle Board (height > 1): ");
+				timer = sanitizedInt(1, 0, buffer, "Please Enter Timer for Play (timer > 0): ");
+				printf("\nSetting Up Board. Loading\n");
+				head = boggleGraph(length, height);
+				time_t startTime_t, endTime_t;
+				time(&startTime_t);
+				DFS(head);
+				time(&endTime_t);
+				printf("\nDFS Algorithm took %lf seconds!\n\n", difftime(endTime_t, startTime_t));
+				displayBoard(head, length, height);
+				//scanf("%s", buffer);
+				countDown(1, "3");
+				countDown(1, "2");
+				countDown(1, "1");
+				countDown(1, "GO");
+				countDown(timer, "Time's Up!");
+				playerScore[0] = guessValid(buffer);
+				printf("You got %d points!\n", playerScore[0]);
+				freeGraph(head);
+				break;
+			case '2':
+				for (int i = 0; i < 12; i++) playerScore[i] = 0;
+				playerCount = sanitizedInt(2, 6, buffer, "Please Enter Number of Players (2 - 6): ");
+				while (multiplayer) {
+					if (multiplayerSetup) {
+						length = sanitizedInt(2, 0, buffer, "Please Enter Length of Boggle Board (length > 1): ");
+						height = sanitizedInt(2, 0, buffer, "Please Enter Height of Boggle Board (height > 1): ");
+						timer = sanitizedInt(1, 0, buffer, "Please Enter Timer for Play (timer > 0): ");
+					}
+					printf("\nSetting Up Board. Loading\n");
+					head = boggleGraph(length, height);
+					DFS(head);
+					displayBoard(head, length, height);
+					countDown(1, "3");
+					countDown(1, "2");
+					countDown(1, "1");
+					countDown(1, "GO");
+					countDown(timer, "Time's Up!");
+					for (int i = 0; i < playerCount; i++) {
+						printf("Player #%d:\n", i + 1);
+						playerScore[i] = guessValid(buffer);
+						printf("Player #%d got %d points!\n\n", i + 1, playerScore[i]);
+					}
+					int winner = -1;
+					int temp = -1;
+					for (int i = 0; i < playerCount; i++) {
+						if (playerScore[i] > temp) {
+							temp = playerScore[i];
+							winner = i;
+						}
+					}
+					playerScore[winner + 6] += 1;
+					printf("Player #%d wins!\n\nGame Count:\n", winner + 1);
+					for (int i = 0; i < playerCount; i++) {
+						printf("Player #%d: %d\n", i + 1, playerScore[i + 6]);
+					}
+					printf("\n");
+					freeGraph(head);
+					while (multiplayerMenu) {
+						printf("1: Play again with same players, same board settings\n");
+						printf("2: Play again with same players, new boad settings\n");
+						printf("3: Return to main menu\n\n");
+						scanf("%s", buffer);
+						printf("\n\n");
+						if (strlen(buffer) == 1) multiplayerChoice = buffer[0];
+						switch (multiplayerChoice) {
+							case '1':
+								multiplayerSetup = 0;
+								multiplayerMenu = 0;
+								break;
+							case '2':
+								multiplayerSetup = 1;
+								multiplayerMenu = 0;
+								break;
+							case '3':
+								multiplayerSetup = 1;
+								multiplayerMenu = 0;
+								multiplayer = 0;
+								break;
+							default:
+								printf("Invalid Input\n");
+						}
+					}
+					multiplayerMenu = 1;
+				}
+				multiplayer = 1;
+				break;
+			case '3':
+				length = sanitizedInt(2, 0, buffer, "Please Enter Length of Boggle Board (length > 1): ");
+				height = sanitizedInt(2, 0, buffer, "Please Enter Height of Boggle Board (height > 1): ");
+				head = boggleGraph(length, height);
+				Node * userInput = head;
+				for (int y = 0; y < height; y++) {
+					for (int x = 0; x < length; x++) {
+						char letter;
+						printf("Input letter for space, (%d, %d): ", x, y);
+						scanf(" %c", &letter); //SANITIZE
+						letter = toupper(letter);
+						userInput -> letter = letter;
+						userInput = userInput -> next;
+					}
+				}
+				displayBoard(head, length, height);
+				printf("Solving board above. Please Be Patient\n");
+				DFS(head);
+				freeGraph(head);
+				break;
+			case '4':
+				printf("Thanks for playing!\n");
+				--playing;
+				break;
+			default:
+				printf("Invalid Input\n");
 		}
+		printf("\n");
 	}
-	for (Node * word = head; word != NULL; word = word -> next) DFS(word);
+	
+	/* Check to see if any words worth value were found
 	char answer[20];
 	int exists = 0;
 	fp = fopen("Answer List.txt", "r");
@@ -501,27 +669,6 @@ int main (void) {
 	}
 	if (exists == 0) printf("no valid words found\n");
 	fclose(fp);
-	
-	displayBoard(head, length, depth);
-	
-	printf("\nstarting timer to solve boggle board\n");
-	time(&start_t);
-	time(&end_t);
-	while (difftime(end_t, start_t) < timer) time(&end_t);
-	double diff_t = difftime(end_t, start_t);
-	printf("clock took %f seconds\n", diff_t);
-	
-	printf("\nEnter words found now. type '.' once done\n");
-	char guess[30];
-	int scoring = 1;
-	exists = 0;
-	int points = 0;
-	while (scoring) {
-		scanf("%s", guess);
-		points += score(guess);
-		if (strcmp(guess, ".") == 0) --scoring;
-	}
-	printf("\nscore is: %d\n", points);
-
+	*/
 	return 1;
 }
