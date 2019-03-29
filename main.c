@@ -4,12 +4,13 @@
 #include <string.h>
 #include <time.h>
 
+/*
 #ifdef _WIN32
 #include <Windows.h>
 #else
 #include <unistd.h>
 #endif
-
+*/
 
 
 /* CS201 Portfolio Initial description and notes
@@ -106,42 +107,29 @@ int getStr(char * stackString) {
 	return size;
 }
 
-int validPath(char letter, int depth, int f) {
-	//printf("testing %c with depth %d and starting at line %d\n", letter, depth, f);
-	char lineRead[70];
-	int lineCount = 2;
+int validPath(char letter, int depth, int lineCount) {
+	char lineRead[100];
 	int firstValid = 0;;
-	int lastValid = 0;
+	//int lastValid = 0;
 	FILE * ptrFile = NULL;
 	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
 	if (!ptrFile) printf("error: file not found");
-	for (int i = 0; i < 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
-	for (int i = 0; i < f; i++) fgets(lineRead, sizeof(lineRead), ptrFile); //JUMP TO FIRST LEGAL CONDITION
+	fscanf(ptrFile, "%s", lineRead);
+	while (lineRead[0] != 'A') fscanf(ptrFile, "%s", lineRead);
+	for (int i = 0; i < lineCount; i++) fscanf(ptrFile, "%s", lineRead);
 	char previousDepth = '.';
-       	if (depth - 1 > -1) previousDepth = lineRead[depth - 1];
-	//printf("previous depth should be %c\n", previousDepth);
-	lineCount += f;
+       	if (depth - 1 > - 1) previousDepth = lineRead[depth - 1];
 	while(!feof(ptrFile)) {
-		fgets(lineRead, sizeof(lineRead), ptrFile);
 		if (previousDepth != lineRead[depth - 1] && previousDepth != '.') break;
 		if (lineRead[depth] == letter) {
 			if (firstValid == 0) firstValid = lineCount;
-			//printf("LINE %d: %s\n", lineCount, lineRead);
 		}
-		if (lineRead[depth] != letter && firstValid != 0 && lastValid == 0) lastValid = lineCount - 1;
+		//if (lineRead[depth] != letter && firstValid != 0 && lastValid == 0) lastValid = lineCount - 1;
+		fscanf(ptrFile, "%s", lineRead);
 		lineCount++;
 	}
-	if (firstValid != 0 && lastValid == 0) lastValid = lineCount - 1;
-	/*
-	fseek(ptrFile, 0, SEEK_SET);
-	// PRINT BOUNDARIES OF LEGAL VALUES
-	for (int i = 0; i <= firstValid; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
-	//printf("LINE %d: %s", firstValid, lineRead);
-	for (int i = firstValid; i < lastValid; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
-	//printf("LINE %d: %s", lastValid, lineRead);
-	*/
+	//if (firstValid != 0 && lastValid == 0) lastValid = lineCount - 1;
 	fclose(ptrFile);
-	//printf("\n");
 	return firstValid;
 }
 
@@ -149,14 +137,11 @@ void addAnswer(char * word) {
 	char existingWord[20];
 	int duplicate = 1;
 	FILE * fp = NULL;
-	//printf("valid word found, adding %s\n", word);
 	fp = fopen("Answer List.txt", "a+");
 	if (!fp) printf("Error: no file found");
 	fseek(fp, 0, SEEK_SET);
 	fscanf(fp, "%s", existingWord);
 	while(!feof(fp)) {
-		//printf("%s\n", existingWord);
-		//printf("comparing %s against %s\n", word, existingWord);
 		duplicate = strcmp(word, existingWord);
 		if (duplicate == 0) break;
 		fscanf(fp, "%s", existingWord);
@@ -166,32 +151,22 @@ void addAnswer(char * word) {
 }
 
 void validWord(char * stackString, int testFrom) {
-	char lineRead[70];
-	char wordCheck[20];
+	char lineRead[100];
 	FILE * ptrFile = NULL;
-	int count = 0;
 	Stack * temp;
 	if (top == NULL) printf("Stack underflow\n");
-	for (temp = top; temp != NULL; temp = temp -> next) count++;
-	for (int i = 19; i >= count; i--) stackString[i] = '\0';
-	for (temp = top; temp != NULL; temp = temp -> next) stackString[--count] = temp -> nodePtr -> letter;
-	//
-	//printf("%s\n", stackString);
-	//
+	printf("%s\n", stackString);
 	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
 	if (!ptrFile) printf("Error: file not found");
-	for (int i = 0; i < 2; i++) fgets(lineRead, sizeof(lineRead), ptrFile);
-	for (int i = 0; i <= testFrom - 2; i++) fscanf(ptrFile, "%s", wordCheck);
+	fscanf(ptrFile, "%s", lineRead);
+	while (lineRead[0] != 'A') fscanf(ptrFile, "%s", lineRead);
+	for (int i = 0; i < testFrom; i++) fscanf(ptrFile, "%s", lineRead);
 	while(!feof(ptrFile)) {
-		//printf("%s\n", wordCheck);
 		int valid = 1;
-		valid = strcmp(stackString, wordCheck);
-		if (valid == 0) addAnswer(wordCheck);
-		if (valid == 0) printf("VALID: %s == %s\n", stackString, wordCheck);
+		valid = strcmp(stackString, lineRead);
+		if (valid == 0) addAnswer(lineRead);
 		if (valid < 0) break;
-		//printf("comparing %s against %s, got value %d\n", stackString, wordCheck, valid);
-		fgets(lineRead, sizeof(lineRead), ptrFile);
-		fscanf(ptrFile, "%s", wordCheck);	
+		fscanf(ptrFile, "%s", lineRead);	
 	}
 	fclose(ptrFile);
 }
@@ -199,72 +174,51 @@ void validWord(char * stackString, int testFrom) {
 void checkNodes(char * stackString, int startCheck) {
 	int stackSize = getStr(stackString);
 	int testFrom = validPath(top -> nodePtr -> letter, stackSize - 1, startCheck);
-	if (stackSize > 2) validWord(stackString, testFrom);
+	if (stackSize > 2 && testFrom > 0) validWord(stackString, testFrom);
 	top -> nodePtr -> visited = 1;
 	if (testFrom != 0) {
 		if (top -> nodePtr -> nw != NULL && top -> nodePtr -> nw -> visited == 0) {
-		//	printf("NorthWest open\n");
 			push(top -> nodePtr -> nw);
-		//	display();
 			checkNodes(stackString, testFrom);
 		}
 		if (top -> nodePtr -> n != NULL && top -> nodePtr -> n -> visited == 0) {
-		//	printf("North open\n");
 			push(top -> nodePtr -> n);
-		//	display();
 			checkNodes(stackString, testFrom);
 		}
 		if (top -> nodePtr -> ne != NULL && top -> nodePtr -> ne -> visited == 0) {
-		//	printf("NorthEast open\n");
 			push(top -> nodePtr -> ne);
-		//	display();
 			checkNodes(stackString, testFrom);
 		}
 		if (top -> nodePtr -> w != NULL && top -> nodePtr -> w -> visited == 0) {
-		//	printf("West open\n");
 			push(top -> nodePtr -> w);
-		//	display();
 			checkNodes(stackString, testFrom);
 		}
 		if (top -> nodePtr -> e != NULL && top -> nodePtr -> e -> visited == 0) {
-		//	printf("East open\n");
 			push(top -> nodePtr -> e);
-		//	display();
 			checkNodes(stackString, testFrom);
 		}
 		if (top -> nodePtr -> sw != NULL && top -> nodePtr -> sw -> visited == 0) {
-		//	printf("SouthWest open\n");
 			push(top -> nodePtr -> sw);
-		//	display();
 			checkNodes(stackString, testFrom);
 		}
 		if (top -> nodePtr -> s != NULL && top -> nodePtr -> s -> visited == 0) {
-		//	printf("South open\n");
 			push(top -> nodePtr -> s);
-		//	display();
 			checkNodes(stackString, testFrom);
 		}
 		if (top -> nodePtr -> se != NULL && top -> nodePtr -> se -> visited == 0) {
-		//	printf("SouthEast open\n");
 			push(top -> nodePtr -> se);
-		//	display();
 			checkNodes(stackString, testFrom);
 		}
 	}
-	//printf("nowhere left to go, going back\n");
 	top -> nodePtr -> visited = 0;
 	pop();
-	//display();
 }
 
 void DFS(Node * head) {
-	//char stackString[20];
-	//int testFrom = 0;
 	for (Node * word = head; word != NULL; word = word -> next) {
-		char stackString[20];
+		char stackString[100];
 		int testFrom = 0;
 		push(word);
-		//display();
 		checkNodes(stackString, testFrom);
 	}
 }
@@ -435,7 +389,7 @@ void title(void) {
 	printf("| $$__  $$| $$  | $$| $$|_  $$| $$|_  $$| $$      | $$__/\n");
 	printf("| $$  \\ $$| $$  | $$| $$  \\ $$| $$  \\ $$| $$      | $$\n");
 	printf("| $$$$$$$/|  $$$$$$/|  $$$$$$/|  $$$$$$/| $$$$$$$$| $$$$$$$$\n");
-	printf("|_______/  \\______/\\ \\______/  \\______/ |________/|________/\n");
+	printf("|_______/  \\______/  \\______/  \\______/ |________/|________/\n");
 	printf("\n");
 }
 
@@ -462,20 +416,32 @@ int sanitizedInt(int validRange, int validLimit, char * buffer, char * message) 
 	while (validInt) {
 		for (int i = 0; i < strlen(buffer); i++) if (isdigit(buffer[i]) == 0) validInt = 0;
 		if (!validInt) {
-			printf("Invalid Input\n%s", message);
+			printf("\nInvalid Input\n\n%s", message);
 			scanf("%s", buffer);
 			validInt = 1;
 		} else if (validRange > atoi(buffer)) {
-			printf("Invalid Input\n%s", message);
+			printf("\nInvalid Input\n\n%s", message);
 			scanf("%s", buffer);
 			validInt = 1;
 		} else if (validLimit > 0 && validLimit < atoi(buffer)) {
-			printf("Invalid Input\n%s", message);
+			printf("\nInvalid Input\n\n%s", message);
 			scanf("%s", buffer);
 			validInt = 1;
 		} else validInt = 0;
 	}
 	return atoi(buffer);
+}
+
+char sanitizedChar(char * buffer) {
+	scanf("%s", buffer);
+	int validChar = 1;
+	while(validChar) {
+		if (!(strlen(buffer) == 1 && isalpha(buffer[0]))) {
+			printf("\nInvalid Input\n\nPlease Enter valid letter: ");
+			scanf("%s", buffer);
+		} else --validChar;
+	}
+	return buffer[0];
 }
 
 void countDown(int timer, char * message) {
@@ -508,6 +474,13 @@ void freeGraph(Node * head) {
 	}
 }
 
+
+void clearAnswers() {
+	FILE * fp = NULL;
+	fp = fopen("Answer List.txt", "w");
+	fclose(fp);
+}
+
 int main (void) {
 	srand(time(0));
 	Node * head = NULL;
@@ -516,10 +489,7 @@ int main (void) {
 	int playerCount = 2;
 	int playerScore[12];
 	float timer = 1;
-	//time_t start_t, end_t;
-	FILE * fp = NULL;
-	fp = fopen("Answer List.txt", "w");
-	fclose(fp);
+	clearAnswers();
 	title();
 	int playing = 1;
 	char multiplayerChoice;
@@ -539,6 +509,7 @@ int main (void) {
 		if (strlen(buffer) == 1) menuInput = buffer[0];
 		switch (menuInput) {
 			case '1':
+				clearAnswers();
 				length = sanitizedInt(2, 0, buffer, "Please Enter Length of Boggle Board (length > 1): ");
 				height = sanitizedInt(2, 0, buffer, "Please Enter Leight of Boggle Board (height > 1): ");
 				timer = sanitizedInt(1, 0, buffer, "Please Enter Timer for Play (timer > 0): ");
@@ -550,7 +521,6 @@ int main (void) {
 				time(&endTime_t);
 				printf("\nDFS Algorithm took %lf seconds!\n\n", difftime(endTime_t, startTime_t));
 				displayBoard(head, length, height);
-				//scanf("%s", buffer);
 				countDown(1, "3");
 				countDown(1, "2");
 				countDown(1, "1");
@@ -561,6 +531,7 @@ int main (void) {
 				freeGraph(head);
 				break;
 			case '2':
+				clearAnswers();
 				for (int i = 0; i < 12; i++) playerScore[i] = 0;
 				playerCount = sanitizedInt(2, 6, buffer, "Please Enter Number of Players (2 - 6): ");
 				while (multiplayer) {
@@ -628,6 +599,7 @@ int main (void) {
 				multiplayer = 1;
 				break;
 			case '3':
+				clearAnswers();
 				length = sanitizedInt(2, 0, buffer, "Please Enter Length of Boggle Board (length > 1): ");
 				height = sanitizedInt(2, 0, buffer, "Please Enter Height of Boggle Board (height > 1): ");
 				head = boggleGraph(length, height);
@@ -636,7 +608,7 @@ int main (void) {
 					for (int x = 0; x < length; x++) {
 						char letter;
 						printf("Input letter for space, (%d, %d): ", x, y);
-						scanf(" %c", &letter); //SANITIZE
+						letter = sanitizedChar(buffer);
 						letter = toupper(letter);
 						userInput -> letter = letter;
 						userInput = userInput -> next;
@@ -656,19 +628,18 @@ int main (void) {
 		}
 		printf("\n");
 	}
-	
-	/* Check to see if any words worth value were found
-	char answer[20];
-	int exists = 0;
-	fp = fopen("Answer List.txt", "r");
-	fscanf(fp, "%s", answer);
-	while (!feof(fp)) {
-		//printf("%s\n", answer);
-		fscanf(fp, "%s", answer);
-		exists++;
-	}
-	if (exists == 0) printf("no valid words found\n");
-	fclose(fp);
-	*/
+
+	/* TO DO LIST:
+	 * 2) Reorganize how program reads dictionary file to be more flexible
+	 * 3) Sanitize string inputs for user word guesses
+	 * 4) Check for ignoring duplicate answers by user
+	 * 5) change stack functions in order to implement two of them? / use for duplicates (answer list)
+	 * 6) move functions out of main and create separate function file, header file
+	 * 7) comment
+	 * 8) write new readme for updated how to for the program
+	 * 9) create video "how to" and include link to it in readme
+	 * 10) change strcmp to strncmp
+	 */
+
 	return 1;
 }
