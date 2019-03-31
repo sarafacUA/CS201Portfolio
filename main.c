@@ -22,14 +22,15 @@
  * that the user can guess within a certain period of time.
  */
 
+// struct for individual nodes on the graph to go through
 typedef struct node {
+	// main contents of each node; what letter it contains and if it has been visited
 	char letter;
 	int visited;
-	int visitedFrom;
-	// pointers used to create a doubly linked list
+	// next and prev are used to initialize and use the nodes as a doubly linked list
 	struct node * next;
 	struct node * prev;
-	// pointers that create the graph used
+	// cardinal directions to connect to different nodes as a graph; utilized in DFS
 	struct node * nw;
 	struct node * n;
 	struct node * ne;
@@ -38,17 +39,80 @@ typedef struct node {
 	struct node * sw;
 	struct node * s;
 	struct node * se;
-	
 } Node;
 
+// struct to create a stack to keep tracks of progress through DFS
 typedef struct stack {
 	Node * nodePtr;
-	int visited;
 	struct stack * next;
 } Stack;
 Stack * top;
 
-Node * add(Node * head) {
+typedef struct answers {
+	char * word;
+	int value;
+	int visited;
+	struct answers * next;
+} Answers;
+Answers * list;
+
+void addAnswerWord(char * answer) {
+	int addWord = 1;
+	for (Answers * temp = list; temp != NULL; temp = temp -> next) {
+		int longerSize = (strlen(answer) > strlen(temp -> word)) ? strlen(answer) : strlen(temp -> word);
+		if (strncmp(answer, temp -> word, longerSize) == 0) addWord = 0;
+	}
+	if (addWord) {
+		Answers * newAnswer = NULL;
+		newAnswer = (Answers *)malloc(sizeof(Answers));
+		if (newAnswer == NULL) printf("Error message: allocation error during add");
+		printf("adding word, %s\n", answer);
+		newAnswer -> word = (char *)malloc(strlen(answer) + 1);
+		newAnswer -> word = strncpy(newAnswer -> word, answer, strlen(answer) + 1);
+		printf("word added is stored as: %s\n", newAnswer -> word);
+		if (newAnswer -> word == NULL) printf("Error message: allocation error with string");
+		switch (strlen(answer)) {
+			case 3:
+			case 4:
+				newAnswer -> value = 1;
+				break;
+			case 5: 
+				newAnswer -> value = 2;
+				break;
+			case 6:
+				newAnswer -> value = 3;
+				break;
+			case 7:
+				newAnswer -> value = 5;
+				break;
+			default:
+				newAnswer -> value = 11;
+		}
+		newAnswer -> visited = 0;
+		newAnswer -> next = list;
+		list = newAnswer;
+	}
+}
+
+void freeAnswers() {
+	Answers * temp;
+	if (list == NULL) printf("No valid words were found.\n");
+	while (list != NULL) {
+		temp = list;
+		list = list -> next;
+		free(temp -> word);
+		free(temp);
+	}
+}
+
+/* Function: addNode
+ * Input: Node pointer to head of doubly linked list
+ * Output: New Node pointer to head of doubly linked list
+ * Description: this function allocates space and adds in the necessary parts of the
+ * struct in order for Node to work as a doubly linked list as well as give the
+ * Node a random letter of the alphabet to use for the boggle graph.
+ */
+Node * addNode(Node * head) {
 	Node * newNode = NULL;
 	newNode = (Node *)malloc(sizeof(Node));
 	if (newNode == NULL) printf("Error message: allocation error during add");
@@ -59,6 +123,12 @@ Node * add(Node * head) {
 	return head;
 }
 
+/* Function: push
+ * Input: Node pointer to desired letter to add to the stack
+ * Output: None
+ * Description: The function adds the current Node to the stack in order for the
+ * DFS to keep track of how deep the search goes.
+ */
 void push(Node * word) {
 	Stack * temp = NULL;
 	temp = (Stack *)malloc(sizeof(Stack));
@@ -70,6 +140,12 @@ void push(Node * word) {
 	top = temp;
 }
 
+/* Function: pop
+ * Input: None
+ * Output: None
+ * Description: The function removes the most recent Node pointer added to 
+ * the stack in order for the DFS to keep track of how deep the search goes.
+ */
 void pop() {
 	Stack * temp;
 	if (top == NULL) {
@@ -81,6 +157,12 @@ void pop() {
 	free(temp);
 }
 
+/* Function: display
+ * Input: None
+ * Output: None
+ * Description: Display the current letter contents of the stack, used 
+ * for debugging purposes.
+ */
 void display() {
 	Stack * temp;
 	if (top == NULL) {
@@ -94,6 +176,12 @@ void display() {
 	printf("\n");
 }
 
+/* Function: getStr
+ * Input: Pointer to string in which the stack values will be returned to
+ * Output: integer value of the string size
+ * Description: This function both outputs the size of the string stack as well as
+ * translating the stack output back into a valid string to compare against.
+ */
 int getStr(char * stackString) {
 	int count = 0;
 	int size = 0;
@@ -101,18 +189,28 @@ int getStr(char * stackString) {
 	if (top == NULL) printf("Stack underflow\n");
 	for (temp = top; temp != NULL; temp = temp -> next) count++;
 	size = count;
-	for (int i = 19; i >= count; i--) stackString[i] = '\0';
+	stackString[count] = '\0';
 	for (temp = top; temp != NULL; temp = temp -> next) stackString[--count] = temp -> nodePtr -> letter;
-	//printf("PATH: %s\n", stackString);
 	return size;
 }
 
+/* Function: validPath
+ * Input: The letter char to check against dictionary, the int depth of current DFS, and 
+ * the int lineCount to jump the dictionary search to the appropriate location before 
+ * searching through
+ * Output: The firstValid int found while searching the dictionary file
+ * Description: This function takes searches for the current letter given at the depth of 
+ * that the DFS algorithm is currently at as well as starting from the previous found valid
+ * word that the string thus far contains. The function returns the first instance in which
+ * a word is found in the dictionary file where the contents of the DFS stack matches the
+ * beginning of a word. If no word can be found in the dictionary file with the given 
+ * inputs, the output returns 0, indicating a miss in the dictionary.
+ */
 int validPath(char letter, int depth, int lineCount) {
 	char lineRead[100];
 	int firstValid = 0;;
-	//int lastValid = 0;
 	FILE * ptrFile = NULL;
-	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
+	ptrFile = fopen("BoggleDictionary.txt", "r");
 	if (!ptrFile) printf("error: file not found");
 	fscanf(ptrFile, "%s", lineRead);
 	while (lineRead[0] != 'A') fscanf(ptrFile, "%s", lineRead);
@@ -121,56 +219,52 @@ int validPath(char letter, int depth, int lineCount) {
        	if (depth - 1 > - 1) previousDepth = lineRead[depth - 1];
 	while(!feof(ptrFile)) {
 		if (previousDepth != lineRead[depth - 1] && previousDepth != '.') break;
-		if (lineRead[depth] == letter) {
-			if (firstValid == 0) firstValid = lineCount;
-		}
-		//if (lineRead[depth] != letter && firstValid != 0 && lastValid == 0) lastValid = lineCount - 1;
+		if (lineRead[depth] == letter) if (firstValid == 0) firstValid = lineCount;
 		fscanf(ptrFile, "%s", lineRead);
 		lineCount++;
 	}
-	//if (firstValid != 0 && lastValid == 0) lastValid = lineCount - 1;
 	fclose(ptrFile);
 	return firstValid;
 }
 
-void addAnswer(char * word) {
-	char existingWord[20];
-	int duplicate = 1;
-	FILE * fp = NULL;
-	fp = fopen("Answer List.txt", "a+");
-	if (!fp) printf("Error: no file found");
-	fseek(fp, 0, SEEK_SET);
-	fscanf(fp, "%s", existingWord);
-	while(!feof(fp)) {
-		duplicate = strcmp(word, existingWord);
-		if (duplicate == 0) break;
-		fscanf(fp, "%s", existingWord);
-	}
-	if (duplicate != 0) fprintf(fp, "%s\r\n", word);
-	fclose(fp);
-}
-
+/* Function: validWord
+ * Input: the String stackString test in the DFS and the int testFrom point in the
+ * dictionary file
+ * Output: None
+ * Description: This function checks through the dictionary, utilizing the testFrom
+ * int given to start at first valid instance of the string searched in the DFS in
+ * order see if that string matches a word in its entirety in the dictionary file.
+ */
 void validWord(char * stackString, int testFrom) {
 	char lineRead[100];
 	FILE * ptrFile = NULL;
-	Stack * temp;
 	if (top == NULL) printf("Stack underflow\n");
-	printf("%s\n", stackString);
-	ptrFile = fopen("Collins Scrabble Words (2015).txt", "r");
+	ptrFile = fopen("BoggleDictionary.txt", "r");
 	if (!ptrFile) printf("Error: file not found");
 	fscanf(ptrFile, "%s", lineRead);
 	while (lineRead[0] != 'A') fscanf(ptrFile, "%s", lineRead);
 	for (int i = 0; i < testFrom; i++) fscanf(ptrFile, "%s", lineRead);
 	while(!feof(ptrFile)) {
 		int valid = 1;
-		valid = strcmp(stackString, lineRead);
-		if (valid == 0) addAnswer(lineRead);
+		int largerSize = (strlen(stackString) > strlen(lineRead) ? strlen(stackString) : strlen(lineRead));
+		valid = strncmp(stackString, lineRead, largerSize);
+		if (valid == 0) addAnswerWord(lineRead);
 		if (valid < 0) break;
 		fscanf(ptrFile, "%s", lineRead);	
 	}
 	fclose(ptrFile);
 }
 
+/* Function: checkNodes
+ * Input: the String stackString to use in dictionary file checks and the int startCheck
+ * to jump to the first occurance of that string for use in dictionary file checks
+ * Output: None
+ * Description: This function goes looks at an individual node in the graph, checking
+ * to see if the node will has the potential to become a word or is a word itself from
+ * the stack. The function than recursively calls itself as it checks each cardinal 
+ * direction node found in the Node struct. The function returns by removing the node
+ * found once all states have been checked, thus creating a full depth first search.
+ */
 void checkNodes(char * stackString, int startCheck) {
 	int stackSize = getStr(stackString);
 	int testFrom = validPath(top -> nodePtr -> letter, stackSize - 1, startCheck);
@@ -214,6 +308,13 @@ void checkNodes(char * stackString, int startCheck) {
 	pop();
 }
 
+/* Function: DFS
+ * Input: Node pointer to the head of the graph (top left corner)
+ * Output: None
+ * Description: This function initializes the necessary components needed to undergo
+ * the recursive algorithm needed for a depth first search for each node found in 
+ * the doubly linked list.
+ */
 void DFS(Node * head) {
 	for (Node * word = head; word != NULL; word = word -> next) {
 		char stackString[100];
@@ -223,18 +324,27 @@ void DFS(Node * head) {
 	}
 }
 
-Node * boggleGraph(int length, int depth) {
+/* Function: boggleGraph
+ * Input: the dimensions of the desired graph, int length and int height
+ * Output: Node pointer to the head of the finalized graph
+ * Description: This function calls for the creations of a doubly linked list, then
+ * transforms that list into a fully fleshed out graph with pointers to each cardinal 
+ * direction in relation to the node itself as well as intializing the visited int
+ * necessary for DFS checking and boggle. All of this is done with the desired user
+ * dimensions for the boggle board they want to create.
+ */
+Node * boggleGraph(int length, int height) {
 	Node * head = NULL;
 	head = (Node *)malloc(sizeof(Node));
 	if (head == NULL) printf("Error message: allocation failure of head\n");
 	head -> letter = 'A' + rand() % 26;
 	head -> next = NULL;
-	for (int i = 0; i < length * depth - 1; i++) {
-		head = add(head);
+	for (int i = 0; i < length * height - 1; i++) {
+		head = addNode(head);
 		if (head == NULL) printf("Error message: allocation failure during push\n");
 	}
 	Node * index = head;
-	for (int y = 0; y < depth; y++) {
+	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < length; x++) {
 			Node * ptr = index;
 			if (x == 0 && y == 0) { // top left corner
@@ -257,8 +367,7 @@ Node * boggleGraph(int length, int depth) {
 				index -> sw = ptr -> prev;
 				index -> s = ptr;
 				index -> se = NULL;
-				
-			} else if (x == 0 && y == depth - 1) { // bottom left corner
+			} else if (x == 0 && y == height - 1) { // bottom left corner
 				index -> w = NULL;
 				index -> e = ptr -> next;
 				for (int i = 0; i < length; i++) ptr = ptr -> prev;
@@ -268,7 +377,7 @@ Node * boggleGraph(int length, int depth) {
 				index -> sw = NULL;
 				index -> s = NULL;
 				index -> se = NULL;	
-			} else if (x == length - 1 && y == depth - 1) { // bottom right corner
+			} else if (x == length - 1 && y == height - 1) { // bottom right corner
 				index -> w = ptr -> prev;
 				index -> e = NULL;
 				for (int i = 0; i < length; i++) ptr = ptr -> prev;
@@ -310,7 +419,7 @@ Node * boggleGraph(int length, int depth) {
 			       	index -> sw = ptr -> prev;
 			       	index -> s = ptr;
 			       	index -> se = NULL;
-			} else if (y == depth - 1) { // last row
+			} else if (y == height - 1) { // last row
 				index -> w = ptr -> prev;
 				index -> e = ptr -> next;
 				for (int i = 0; i < length; i++) ptr = ptr -> prev;
@@ -333,54 +442,25 @@ Node * boggleGraph(int length, int depth) {
 				index -> se = ptr -> next;
 			}
 			index -> visited = 0;
-			index -> visitedFrom = 0;
 			index = index -> next;
 		}
 	}
 	return head;
 }
 
-int score(char * guess) {
-	FILE * fp;
-	char answer[20];
-	int i = 0;
-	int points = 0;
-	while (guess[i]) {
-		guess[i] = toupper(guess[i]);
-		i++;
-	}
-	i = 0;
-	fp = fopen("Answer List.txt", "r");
-	fscanf(fp, "%s", answer);
-	while (!feof(fp)) {
-		if (strcmp(guess, answer) == 0) i++;
-		fscanf(fp, "%s", answer);
-	}
-	fclose(fp);
-
-	if (i) {
-		switch(strlen(guess)) {
-			case 3:
-			case 4:
-				points = 1;
-				break;
-			case 5:
-				points = 2;
-				break;
-			case 6:
-				points = 3;
-				break;
-			case 7:
-				points = 5;
-				break;
-			default:
-				points = 11;
-		}
-	}
-	return points;
+void displayAnswers() {
+	printf("\nThe answers for the follow boggle board are:\n");
+	for (Answers * temp = list; temp != NULL; temp = temp -> next) printf("Worth %2d point(s) is: %s\n", temp -> value, temp -> word);
+	printf("\n");
 }
 
-void title(void) {
+
+/* Function: title
+ * Input: None
+ * Output: None
+ * Description: This is a pretty title for the game with ASCII art :)
+ */
+void title() {
 	printf("\n");
 	printf(" /$$$$$$$   /$$$$$$   /$$$$$$   /$$$$$$  /$$       /$$$$$$$$\n");
 	printf("| $$__  $$ /$$__  $$ /$$__  $$ /$$__  $$| $$      | $$_____/\n");
@@ -393,6 +473,12 @@ void title(void) {
 	printf("\n");
 }
 
+/* Function: displayBoard
+ * Input: Node pointer to the head, and the integer dimensions, int length and int height
+ * Output: None
+ * Description: This graph takes the graph created as well as the dimensions that user
+ * input for the graph in order to output a graph for the user to see with ASCII art
+ */
 void displayBoard(Node * head, int length, int depth) {
 	printf("\n");
 	for (int x = 0; x < length; x++) printf("+---");
@@ -409,6 +495,14 @@ void displayBoard(Node * head, int length, int depth) {
 	printf("\n");
 }
 
+/* Function: sanitizedInt
+ * Input: Int validRange for lower bound, int validLimt for the upper bound, String buffer
+ * to read the inputs the user enters, and String message for the unique message to ask
+ * Output: Returns the sanitized int for valid user ints
+ * Description: The function ensures that the integer that the user needs to input is correct
+ * in order to avoid human errors in the program's functionality. This function also asks for
+ * the range of integer values for as user values require some necessary valid range.
+ */
 int sanitizedInt(int validRange, int validLimit, char * buffer, char * message) {
 	printf("%s", message);
 	scanf("%s", buffer);
@@ -432,6 +526,11 @@ int sanitizedInt(int validRange, int validLimit, char * buffer, char * message) 
 	return atoi(buffer);
 }
 
+/* Function: sanitizedChar
+ * Input: String buffer for the function to scan user inputs
+ * Output: Returns the sanitized char for valid user characters
+ * Description: This function reads the user function until a valid character is entered.
+ */
 char sanitizedChar(char * buffer) {
 	scanf("%s", buffer);
 	int validChar = 1;
@@ -444,6 +543,12 @@ char sanitizedChar(char * buffer) {
 	return buffer[0];
 }
 
+/* Function: countDown
+ * Input: Int timer for the ammount of time wait and String message for count down message
+ * Output: None
+ * Description: This function waits a certain amount of time as given by the integer value
+ * the user input in order to create a timer, displaying a message once the timer ends.
+ */
 void countDown(int timer, char * message) {
 	time_t start_t, end_t;
 	time(&start_t);
@@ -453,18 +558,44 @@ void countDown(int timer, char * message) {
 
 }
 
+/* Function: guessValid
+ * Input: String of the buffer for user inputs to be scanned
+ * Output: Int points totalled from the score function
+ * Description: This function allows for the user to enter the words they found or think
+ * may be valid, waiting for the '.' character to be input once the user is done.
+ */
 int guessValid(char * buffer) {
 	printf("Please input '.' once done entering words\n");
 	int scoring = 1;
 	int points = 0;
 	while (scoring) {
 		scanf("%s", buffer);
-		points += score(buffer);
+		int i = 0;
+		while(buffer[i]) {
+			buffer[i] = toupper(buffer[i]);
+			i++;
+		}
+		//points += score(buffer);
+		for (Answers * temp = list; temp != NULL; temp = temp -> next) {
+			int longerSize = (strlen(temp -> word) > strlen(buffer) ? strlen(temp -> word) : strlen(buffer));
+			if (strncmp(temp -> word, buffer, longerSize) == 0 && temp -> visited == 0) {
+				printf("CORRECT!!\n");
+				points += temp -> value;//score(buffer);
+				temp -> visited = 1;
+				printf("current points: %d\n", points);
+			}
+		}
 		if (strcmp(buffer, ".") == 0) --scoring;
 	}
+	for (Answers * temp = list; temp != NULL; temp = temp -> next) temp -> visited = 0;
 	return points;
 }
 
+/* Function: freeGraph
+ * Input: Node pointer to the head of the graph
+ * Output: None
+ * Description: This function clears the boggle graph created and user from memory.
+ */
 void freeGraph(Node * head) {
 	Node * temp;
 	while(head != NULL) {
@@ -475,12 +606,6 @@ void freeGraph(Node * head) {
 }
 
 
-void clearAnswers() {
-	FILE * fp = NULL;
-	fp = fopen("Answer List.txt", "w");
-	fclose(fp);
-}
-
 int main (void) {
 	srand(time(0));
 	Node * head = NULL;
@@ -489,7 +614,6 @@ int main (void) {
 	int playerCount = 2;
 	int playerScore[12];
 	float timer = 1;
-	clearAnswers();
 	title();
 	int playing = 1;
 	char multiplayerChoice;
@@ -509,29 +633,29 @@ int main (void) {
 		if (strlen(buffer) == 1) menuInput = buffer[0];
 		switch (menuInput) {
 			case '1':
-				clearAnswers();
 				length = sanitizedInt(2, 0, buffer, "Please Enter Length of Boggle Board (length > 1): ");
 				height = sanitizedInt(2, 0, buffer, "Please Enter Leight of Boggle Board (height > 1): ");
 				timer = sanitizedInt(1, 0, buffer, "Please Enter Timer for Play (timer > 0): ");
 				printf("\nSetting Up Board. Loading\n");
 				head = boggleGraph(length, height);
-				time_t startTime_t, endTime_t;
-				time(&startTime_t);
+				//time_t startTime_t, endTime_t;
+				//time(&startTime_t);
 				DFS(head);
-				time(&endTime_t);
-				printf("\nDFS Algorithm took %lf seconds!\n\n", difftime(endTime_t, startTime_t));
+				//time(&endTime_t);
+				//printf("\nDFS Algorithm took %lf seconds!\n\n", difftime(endTime_t, startTime_t));
 				displayBoard(head, length, height);
-				countDown(1, "3");
+				countDown(1, "Count Down Starts in: 3");
 				countDown(1, "2");
 				countDown(1, "1");
 				countDown(1, "GO");
 				countDown(timer, "Time's Up!");
+				displayAnswers();
 				playerScore[0] = guessValid(buffer);
 				printf("You got %d points!\n", playerScore[0]);
 				freeGraph(head);
+				freeAnswers();
 				break;
 			case '2':
-				clearAnswers();
 				for (int i = 0; i < 12; i++) playerScore[i] = 0;
 				playerCount = sanitizedInt(2, 6, buffer, "Please Enter Number of Players (2 - 6): ");
 				while (multiplayer) {
@@ -544,7 +668,7 @@ int main (void) {
 					head = boggleGraph(length, height);
 					DFS(head);
 					displayBoard(head, length, height);
-					countDown(1, "3");
+					countDown(1, "Count Down Starts in: 3");
 					countDown(1, "2");
 					countDown(1, "1");
 					countDown(1, "GO");
@@ -569,6 +693,7 @@ int main (void) {
 					}
 					printf("\n");
 					freeGraph(head);
+					freeAnswers();
 					while (multiplayerMenu) {
 						printf("1: Play again with same players, same board settings\n");
 						printf("2: Play again with same players, new boad settings\n");
@@ -599,7 +724,6 @@ int main (void) {
 				multiplayer = 1;
 				break;
 			case '3':
-				clearAnswers();
 				length = sanitizedInt(2, 0, buffer, "Please Enter Length of Boggle Board (length > 1): ");
 				height = sanitizedInt(2, 0, buffer, "Please Enter Height of Boggle Board (height > 1): ");
 				head = boggleGraph(length, height);
@@ -616,7 +740,14 @@ int main (void) {
 				}
 				displayBoard(head, length, height);
 				printf("Solving board above. Please Be Patient\n");
+				time_t start_t, end_t;
+				time(&start_t);
 				DFS(head);
+				time(&end_t);
+				int time = difftime(end_t, start_t);
+				printf("Graph algortithm took %d seconds to solve!\n", time);
+				displayAnswers();
+				freeAnswers();
 				freeGraph(head);
 				break;
 			case '4':
@@ -630,15 +761,13 @@ int main (void) {
 	}
 
 	/* TO DO LIST:
-	 * 2) Reorganize how program reads dictionary file to be more flexible
-	 * 3) Sanitize string inputs for user word guesses
-	 * 4) Check for ignoring duplicate answers by user
-	 * 5) change stack functions in order to implement two of them? / use for duplicates (answer list)
-	 * 6) move functions out of main and create separate function file, header file
-	 * 7) comment
-	 * 8) write new readme for updated how to for the program
-	 * 9) create video "how to" and include link to it in readme
-	 * 10) change strcmp to strncmp
+	 // FALL UNDER SAME TO DO ISH
+	 * 1) Sanitize inputs for amounts larger than buffer
+	 * 2) move functions out of main and create separate function file, header file
+	 * 3) Test with different dictionary files?
+	 * 4) create makefile
+	 * 4) add additional comments
+	 * 5) create video "how to" and include link to it in readme
 	 */
 
 	return 1;
