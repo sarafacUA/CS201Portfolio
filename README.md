@@ -8,12 +8,12 @@ the program.
 
 ## Important files
 
-### Tutorial Video
+### Video Demonstration (on linux virtual machine)
 
 For a demonstration of the program working as intended, the following link brings up a video
 showing that the program and its modes of operation work as intended.
 
-
+https://alabama.box.com/s/48r7jdaa35i6e9sn84708o7tfd08on3o
 
 ### Dictionary text file
 
@@ -32,7 +32,7 @@ Upon execution of the program, a title appears for the game followed by a main m
 interface allowing the user to input a single character as indicated by the number beside
 the option. Valid inputs to proceed are '1', '2', '3', and '4'. Depending on the option
 selected, the program will prompt the user to input the length of the board selected, the
-height of the board selected, the time in which the user is allowed to write answers down,
+height of the board selected, the time in seconds the user is allowed to write answers down,
 the number of players that will compete against each other, and even the letters to make up
 the boggle board. Upon completion of the timer in single player and multiplayer mode, the
 program will ask users in input which words they found in the graph presented, giving them
