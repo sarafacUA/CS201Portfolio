@@ -9,21 +9,22 @@
 int main (void) {
 	srand(time(0));
 	Dictionary * dict = NULL;
-	dict = setDictionary();
+	dict = setDictionary(); // removes proper nouns and words with '
 	Node * head = NULL;
-	int length = 2;
-	int height = 2;
-	int playerCount = 2;
-	int playerScore[12];
+	int length = 2; // minimum length
+	int height = 2; // minimum height
+	int playerCount = 2; // minimum player count
+	int playerScore[12]; // player scores and win counts for up to 6 players
 	float timer = 1;
 	title();
 	int playing = 1;
+	// multiplayer menu registers
 	char multiplayerChoice;
 	int multiplayerMenu = 1;
 	int multiplayer = 1;
 	int multiplayerSetup = 1;
-	char buffer[1000];
-	while (playing) {
+	char buffer[1000]; // buffer for user inputs
+	while (playing) { // Main Menu while loop
 		int menuInput = 0;
 		printf("MAIN MENU\n\n");
 		printf("1: SINGLEPLAYER MODE (1)\n");
@@ -34,9 +35,9 @@ int main (void) {
 		printf("\n");
 		if (strlen(buffer) == 1) menuInput = buffer[0];
 		switch (menuInput) {
-			case '1':
+			case '1': // single player mode
 				length = sanitizedInt(2, 0, buffer, "Please Enter Length of Boggle Board (length > 1): ");
-				height = sanitizedInt(2, 0, buffer, "Please Enter Leight of Boggle Board (height > 1): ");
+				height = sanitizedInt(2, 0, buffer, "Please Enter Height of Boggle Board (height > 1): ");
 				timer = sanitizedInt(1, 0, buffer, "Please Enter Timer for Play (timer > 0): ");
 				printf("\nSetting Up Board. Loading\n");
 				head = boggleGraph(length, height);
@@ -53,7 +54,7 @@ int main (void) {
 				displayAnswers();
 				freeAnswers();
 				break;
-			case '2':
+			case '2': // multiplayer mode
 				for (int i = 0; i < 12; i++) playerScore[i] = 0;
 				playerCount = sanitizedInt(2, 6, buffer, "Please Enter Number of Players (2 - 6): ");
 				while (multiplayer) {
@@ -101,15 +102,15 @@ int main (void) {
 						printf("\n\n");
 						if (strlen(buffer) == 1) multiplayerChoice = buffer[0];
 						switch (multiplayerChoice) {
-							case '1':
+							case '1': // play again, same settings
 								multiplayerSetup = 0;
 								multiplayerMenu = 0;
 								break;
-							case '2':
+							case '2': // play again, new settings
 								multiplayerSetup = 1;
 								multiplayerMenu = 0;
 								break;
-							case '3':
+							case '3': // return to main menu
 								multiplayerSetup = 1;
 								multiplayerMenu = 0;
 								multiplayer = 0;
@@ -122,11 +123,11 @@ int main (void) {
 				}
 				multiplayer = 1;
 				break;
-			case '3':
+			case '3': // boggle solver
 				length = sanitizedInt(2, 0, buffer, "Please Enter Length of Boggle Board (length > 1): ");
 				height = sanitizedInt(2, 0, buffer, "Please Enter Height of Boggle Board (height > 1): ");
 				head = boggleGraph(length, height);
-				Node * userInput = head;
+				Node * userInput = head; // look through and set each node in graph to user define letter
 				for (int y = 0; y < height; y++) {
 					for (int x = 0; x < length; x++) {
 						char letter;
@@ -139,7 +140,7 @@ int main (void) {
 				}
 				displayBoard(head, length, height);
 				printf("Solving board above. Please Be Patient\n");
-				time_t start_t, end_t;
+				time_t start_t, end_t; // find time of board solve specifically for this mode
 				time(&start_t);
 				depthFirstSearch(dict, head);
 				time(&end_t);
@@ -149,7 +150,7 @@ int main (void) {
 				freeAnswers();
 				freeGraph(head);
 				break;
-			case '4':
+			case '4': // quit
 				printf("Thanks for playing!\n");
 				--playing;
 				break;
@@ -158,12 +159,5 @@ int main (void) {
 		}
 		printf("\n");
 	}
-
-	/* TO DO LIST:
-	 * 1) Test with different dictionary files?
-	 * 2) add additional comments
-	 * 3) create video "how to" and include link to it in readme
-	 */
-
 	return 1;
 }

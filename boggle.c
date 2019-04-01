@@ -15,7 +15,6 @@
  * file be read only once
  */
 Dictionary * setDictionary() {
-	//int count = 0;
 	Dictionary * head;
 	char initialWord[100];
 	FILE * fp;
@@ -43,7 +42,6 @@ Dictionary * setDictionary() {
 	while(!feof(fp)) {
 		fscanf(fp, "%s", initialWord);
 		if (isupper(initialWord[0]) == 0 && strlen(initialWord) > 2) {
-			//printf("%s, %d\n", initialWord, count);
 			int i = 0;
 			int fails = 0;
 			while (initialWord[i]) {
@@ -62,11 +60,9 @@ Dictionary * setDictionary() {
 				strncpy(temp -> word, initialWord, strlen(initialWord) + 1);
 				temp -> next = head;
 				head = temp;
-				//count++;
 			}
 		}
 	}
-	//printf("%d\n", count);
 	fclose(fp);
 	return head;
 }
@@ -77,7 +73,7 @@ Dictionary * setDictionary() {
  * Description: This function takes a match found while looking through the
  * boggle graph, and adds it to this linked list, so that it can avoid
  * duplicates, calculate the value of that chosen word to use for scoring, and
- * watch out for multiple of the same user responses.
+ * watches out for multiple of the same user responses.
  */
 void addAnswers(char * answer) {
 	int addWord = 1;
@@ -89,10 +85,8 @@ void addAnswers(char * answer) {
 		Answers * newAnswer = NULL;
 		newAnswer = (Answers *)malloc(sizeof(Answers));
 		if (newAnswer == NULL) printf("Error message: allocation error during add");
-		//printf("adding word, %s\n", answer);
 		newAnswer -> word = (char *)malloc(strlen(answer) + 1);
 		newAnswer -> word = strncpy(newAnswer -> word, answer, strlen(answer) + 1);
-		//printf("word added is stored as: %s\n", newAnswer -> word);
 		if (newAnswer -> word == NULL) printf("Error message: allocation error with string");
 		switch (strlen(answer)) {
 			case 3:
@@ -153,10 +147,8 @@ int guessValid(char * buffer) {
 		for (Answers * temp = list; temp != NULL; temp = temp -> next) {
 			int longerSize = (strlen(temp -> word) > strlen(buffer) ? strlen(temp -> word) : strlen(buffer));
 			if (strncmp(temp -> word, buffer, longerSize) == 0 && temp -> visited == 0) {
-				//printf("CORRECT!!\n");
 				points += temp -> value;
 				temp -> visited = 1;
-				//printf("current points: %d\n", points);
 			}
 		}
 		if (strcmp(buffer, ".") == 0) --scoring;
@@ -189,14 +181,14 @@ void freeAnswers() {
  * DFS to keep track of how deep the search goes.
  */
 void push(Node * word) {
-	Stack * temp = NULL;
-	temp = (Stack *)malloc(sizeof(Stack));
+	Stack * newStack = NULL;
+	newStack = (Stack *)malloc(sizeof(Stack));
 	if (temp == NULL) {
 		printf("stack overflow\n");
 	}
-	temp -> nodePtr = word;
-	temp -> next = top;
-	top = temp;
+	newStack -> nodePtr = word;
+	newStack -> next = top;
+	top = newStack;
 }
 
 /* Function: pop
@@ -273,10 +265,9 @@ void getStr(char * stackString) {
  * Description: This function checks to see if the current concatenated values
  * in the depth first search is the start of a word, or is a word itself.
  */
-int checkDictionary(Dictionary * dict, char * stackString, Stack * top, Answers * list) {
+int checkDictionary(Dictionary * dict, char * stackString) {
 	for (Dictionary * temp = dict; temp != NULL; temp = temp -> next) {
 		if (strlen(stackString) > 2) {
-			//printf("checking %s against %s\n", stackString, temp -> word);
 			int largerWord = (strlen(temp -> word) > strlen(stackString) ? strlen(temp -> word) : strlen(stackString));
 			if (strncmp(temp -> word, stackString, largerWord) == 0) {
 				addAnswers(temp -> word);
@@ -289,9 +280,8 @@ int checkDictionary(Dictionary * dict, char * stackString, Stack * top, Answers 
 }
 
 /* Function: checkNodes
- * Input: the String stackString to use in dictionary file checks and the int startCheck
- * to jump to the first occurance of that string for use in dictionary file checks
- * Output: None
+ * Input: The pointer to the head of the dictionary struct, the string found by
+ * turning the stack around backwards
  * Description: This function goes looks at an individual node in the graph, checking
  * to see if the node will has the potential to become a word or is a word itself from
  * the stack. The function than recursively calls itself as it checks each cardinal
@@ -300,7 +290,7 @@ int checkDictionary(Dictionary * dict, char * stackString, Stack * top, Answers 
  */
 void checkNodes(Dictionary * dict, char * stackString) {
 	getStr(stackString);
-	int testFrom = checkDictionary(dict, stackString, top, list);
+	int testFrom = checkDictionary(dict, stackString);
 	top -> nodePtr -> visited = 1;
 	if (testFrom) {
 		if (top -> nodePtr -> nw != NULL && top -> nodePtr -> nw -> visited == 0) {
@@ -338,7 +328,6 @@ void checkNodes(Dictionary * dict, char * stackString) {
 	}
 	top -> nodePtr -> visited = 0;
 	pop();
-	//display();
 }
 
 /* Function: DFS
