@@ -15,7 +15,7 @@
  * file be read only once
  */
 Dictionary * setDictionary() {
-	Dictionary * head;
+	Dictionary * head = NULL;
 	char initialWord[100];
 	FILE * fp;
 	fp = fopen("BoggleDictionary.txt", "r");
