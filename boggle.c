@@ -183,7 +183,7 @@ void freeAnswers() {
 void push(Node * word) {
 	Stack * newStack = NULL;
 	newStack = (Stack *)malloc(sizeof(Stack));
-	if (temp == NULL) {
+	if (newStack == NULL) {
 		printf("stack overflow\n");
 	}
 	newStack -> nodePtr = word;

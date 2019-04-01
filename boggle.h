@@ -52,7 +52,7 @@ extern void pop();
 extern void display();
 extern Node * addNode(Node *);
 extern void getStr(char *);
-extern int checkDictionary(Dictionary *, char *, Stack *, Answers *);
+extern int checkDictionary(Dictionary *, char *);
 extern void checkNodes(Dictionary *, char *);
 extern void depthFirstSearch(Dictionary *, Node *);
 extern Node * boggleGraph(int, int);
