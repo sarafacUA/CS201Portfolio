@@ -5,10 +5,7 @@
 #include <time.h>
 
 #include "boggle.h"
-/*
-Stack * top;
-Answers * list;
-*/
+
 /* Function: setDictionary
  * Input: None
  * Output: Pointer to head of dictionary linked list
@@ -18,36 +15,58 @@ Answers * list;
  * file be read only once
  */
 Dictionary * setDictionary() {
+	//int count = 0;
 	Dictionary * head;
 	char initialWord[100];
-	head = (Dictionary *)malloc(sizeof(Dictionary));
-	if (head == NULL) printf("Error message: allocation error during dictionary add");
 	FILE * fp;
 	fp = fopen("BoggleDictionary.txt", "r");
 	fscanf(fp, "%s", initialWord);
-	int a = 0;
-	while(initialWord[a]) {
-		initialWord[a] = toupper(initialWord[a]);
-		a++;
-	}
-	head -> word = (char *)malloc(strlen(initialWord) + 1);
-	strncpy(head -> word, initialWord, strlen(initialWord) + 1);
-	head -> next = NULL;
-	while(!feof(fp)) {
-		Dictionary * temp = NULL;
-		temp = (Dictionary *)malloc(sizeof(Dictionary));
-		if (temp == NULL) printf("Error message: allocation error during dictionary add");
-		fscanf(fp, "%s", initialWord);
-		int i = 0;
-		while (initialWord[i]) {
-			initialWord[i] = toupper(initialWord[i]);
-			i++;
+	if (isupper(initialWord[0]) == 0 && strlen(initialWord) > 2) {
+		int a = 0;
+		int fails = 0;
+		while(initialWord[a]) {
+			if (initialWord[a] == '\'') {
+				fails = 1;
+				break;
+			}
+			initialWord[a] = toupper(initialWord[a]);
+			a++;
 		}
-		temp -> word = (char *)malloc(strlen(initialWord) + 1);
-		strncpy(temp -> word, initialWord, strlen(initialWord) + 1);
-		temp -> next = head;
-		head = temp;
+		if (fails == 0) {
+			head = (Dictionary *)malloc(sizeof(Dictionary));
+			if (head == NULL) printf("Error message: allocation error during dictionary add");
+			head -> word = (char *)malloc(strlen(initialWord) + 1);
+			strncpy(head -> word, initialWord, strlen(initialWord) + 1);
+			head -> next = NULL;
+		}
 	}
+	while(!feof(fp)) {
+		fscanf(fp, "%s", initialWord);
+		if (isupper(initialWord[0]) == 0 && strlen(initialWord) > 2) {
+			//printf("%s, %d\n", initialWord, count);
+			int i = 0;
+			int fails = 0;
+			while (initialWord[i]) {
+				if (initialWord[i] == '\'') {
+					fails = 1;
+					break;
+				}
+				initialWord[i] = toupper(initialWord[i]);
+				i++;
+			}
+			if (fails == 0) {
+				Dictionary * temp = NULL;
+				temp = (Dictionary *)malloc(sizeof(Dictionary));
+				if (temp == NULL) printf("Error message: allocation error during dictionary add");
+				temp -> word = (char *)malloc(strlen(initialWord) + 1);
+				strncpy(temp -> word, initialWord, strlen(initialWord) + 1);
+				temp -> next = head;
+				head = temp;
+				//count++;
+			}
+		}
+	}
+	//printf("%d\n", count);
 	fclose(fp);
 	return head;
 }
@@ -125,7 +144,7 @@ int guessValid(char * buffer) {
 	int scoring = 1;
 	int points = 0;
 	while (scoring) {
-		scanf("%s", buffer);
+		scanf("%999s", buffer);
 		int i = 0;
 		while(buffer[i]) {
 			buffer[i] = toupper(buffer[i]);
@@ -134,10 +153,10 @@ int guessValid(char * buffer) {
 		for (Answers * temp = list; temp != NULL; temp = temp -> next) {
 			int longerSize = (strlen(temp -> word) > strlen(buffer) ? strlen(temp -> word) : strlen(buffer));
 			if (strncmp(temp -> word, buffer, longerSize) == 0 && temp -> visited == 0) {
-				printf("CORRECT!!\n");
+				//printf("CORRECT!!\n");
 				points += temp -> value;
 				temp -> visited = 1;
-				printf("current points: %d\n", points);
+				//printf("current points: %d\n", points);
 			}
 		}
 		if (strcmp(buffer, ".") == 0) --scoring;
@@ -332,7 +351,6 @@ void checkNodes(Dictionary * dict, char * stackString) {
 void depthFirstSearch(Dictionary * dict, Node * head) {
 	for (Node * word = head; word != NULL; word = word -> next) {
 		char stackString[100];
-		//int testFrom = 0;
 		push(word);
 		checkNodes(dict, stackString/*, top*//*, list*/);
 	}
@@ -526,21 +544,21 @@ void title() {
  */
 int sanitizedInt(int validRange, int validLimit, char * buffer, char * message) {
 	printf("%s", message);
-	scanf("%s", buffer);
+	scanf("%999s", buffer);
 	int validInt = 1;
 	while (validInt) {
 		for (int i = 0; i < strlen(buffer); i++) if (isdigit(buffer[i]) == 0) validInt = 0;
 		if (!validInt) {
 			printf("\nInvalid Input\n\n%s", message);
-			scanf("%s", buffer);
+			scanf("%999s", buffer);
 			validInt = 1;
 		} else if (validRange > atoi(buffer)) {
 			printf("\nInvalid Input\n\n%s", message);
-			scanf("%s", buffer);
+			scanf("%999s", buffer);
 			validInt = 1;
 		} else if (validLimit > 0 && validLimit < atoi(buffer)) {
 			printf("\nInvalid Input\n\n%s", message);
-			scanf("%s", buffer);
+			scanf("%999s", buffer);
 			validInt = 1;
 		} else validInt = 0;
 	}
@@ -553,12 +571,12 @@ int sanitizedInt(int validRange, int validLimit, char * buffer, char * message) 
  * Description: This function reads the user function until a valid character is entered.
  */
 char sanitizedChar(char * buffer) {
-	scanf("%s", buffer);
+	scanf("%999s", buffer);
 	int validChar = 1;
 	while(validChar) {
 		if (!(strlen(buffer) == 1 && isalpha(buffer[0]))) {
 			printf("\nInvalid Input\n\nPlease Enter valid letter: ");
-			scanf("%s", buffer);
+			scanf("%999s", buffer);
 		} else --validChar;
 	}
 	return buffer[0];

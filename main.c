@@ -30,7 +30,7 @@ int main (void) {
 		printf("2: MULTIPLAYER MODE (2-6)\n");
 		printf("3: BOGGLE SOLVER\n");
 		printf("4: Quit\n\n");
-		scanf("%s", buffer);
+		scanf("%999s", buffer);
 		printf("\n");
 		if (strlen(buffer) == 1) menuInput = buffer[0];
 		switch (menuInput) {
@@ -50,6 +50,7 @@ int main (void) {
 				playerScore[0] = guessValid(buffer);
 				printf("You got %d points!\n", playerScore[0]);
 				freeGraph(head);
+				displayAnswers();
 				freeAnswers();
 				break;
 			case '2':
@@ -90,6 +91,7 @@ int main (void) {
 					}
 					printf("\n");
 					freeGraph(head);
+					displayAnswers();
 					freeAnswers();
 					while (multiplayerMenu) {
 						printf("1: Play again with same players, same board settings\n");
@@ -158,11 +160,9 @@ int main (void) {
 	}
 
 	/* TO DO LIST:
-	 // FALL UNDER SAME TO DO ISH
-	 * 1) Sanitize inputs for amounts larger than buffer
-	 * 3) Test with different dictionary files?
-	 * 4) add additional comments
-	 * 5) create video "how to" and include link to it in readme
+	 * 1) Test with different dictionary files?
+	 * 2) add additional comments
+	 * 3) create video "how to" and include link to it in readme
 	 */
 
 	return 1;

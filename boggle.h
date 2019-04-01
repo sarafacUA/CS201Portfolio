@@ -20,6 +20,7 @@ typedef struct node {
 	struct node * se;
 } Node;
 
+// struct to read in dictionary file for faster runtimes
 typedef struct dictionary {
 	char * word;
 	struct dictionary * next;
