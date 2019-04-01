@@ -147,6 +147,7 @@ int guessValid(char * buffer) {
 		for (Answers * temp = list; temp != NULL; temp = temp -> next) {
 			int longerSize = (strlen(temp -> word) > strlen(buffer) ? strlen(temp -> word) : strlen(buffer));
 			if (strncmp(temp -> word, buffer, longerSize) == 0 && temp -> visited == 0) {
+				printf("correct!\n");
 				points += temp -> value;
 				temp -> visited = 1;
 			}
